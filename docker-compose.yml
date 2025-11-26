@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:18.1
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: "evangelion"
+      POSTGRES_USER: "shinji"
+      POSTGRES_DB: "area"
+    volumes:
+      - "db_data:/var/lib/postgresql"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U shinji -d area" ]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
+
+volumes:
+  db_data:
