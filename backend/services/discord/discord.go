@@ -1,9 +1,13 @@
-package mainf
+// Extremely barebones server to demonstrate OAuth 2.0 flow with Discord
+// Uses native net/http to be dependency-less and easy to run.
+// No sessions logic implemented, re-login needed each visit.
+// Edit the config lines a little bit then go build/run it as normal.
+package main
 
 import (
 	"context"
+	"github.com/ravener/discord-oauth2"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -21,10 +25,10 @@ func main() {
 	conf := &oauth2.Config{
 		RedirectURL: "http://localhost:3000/auth/callback",
 		// This next 2 lines must be edited before running this.
-		ClientID:     "Iv23li6Q0bAJdDP9AwJA",
-		ClientSecret: "7fdf959d93e3e755f671e3dc3f468cdb9848c9e0",
-		//Scopes:       []string{github.},
-		Endpoint: github.Endpoint,
+		ClientID:     "1440051792888070208",
+		ClientSecret: "rhUS1luTo13pVYZSKJEnmyzQ34lBrc_a",
+		Scopes:       []string{discord.ScopeIdentify},
+		Endpoint:     discord.Endpoint,
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +57,7 @@ func main() {
 		}
 
 		// Step 4: Use the access token, here we use it to get the logged in user's info.
-		res, err := conf.Client(context.Background(), token).Get("https://api.github.com/user")
+		res, err := conf.Client(context.Background(), token).Get("https://discord.com/api/users/@me")
 
 		if err != nil || res.StatusCode != 200 {
 			w.WriteHeader(http.StatusInternalServerError)
