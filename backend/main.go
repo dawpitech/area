@@ -43,7 +43,7 @@ func main() {
 
 	services.RegisterServiceRoutes(fizzRouter)
 
-	if err := router.Run("0.0.0.0:24680"); err != nil {
+	if err := router.Run("0.0.0.0:8080"); err != nil {
 		log.Fatalln(err.Error())
 	}
 }

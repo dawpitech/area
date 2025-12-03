@@ -32,8 +32,8 @@ var Provider = models.Service{
 }
 
 var oauthConfig = &oauth2.Config{
-	ClientID:     os.Getenv("DISCORD_OAUTH2_CLIENT_ID"),
-	ClientSecret: os.Getenv("DISCORD_OAUTH2_CLIENT_SECRET"),
+	ClientID:     os.Getenv("GITHUB_OAUTH2_CLIENT_ID"),
+	ClientSecret: os.Getenv("GITHUB_OAUTH2_CLIENT_SECRET"),
 	Endpoint:     github.Endpoint,
 	RedirectURL:  os.Getenv("PUBLIC_URL") + "/providers/github/auth/callback",
 	Scopes:       nil,

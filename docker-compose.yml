@@ -16,5 +16,33 @@ services:
       start_period: 10s
       timeout: 10s
 
+  migrate:
+    build:
+      context: backend
+      target: builder
+    command: "go run migrate/migrate.go"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URI: "host=db user=shinji password=evangelion dbname=area port=5432 sslmode=disable"
+    restart: no
+
+  server:
+    build:
+      context: backend
+      target: release
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - 8080:8080
+    environment:
+      DB_URI: "host=db user=shinji password=evangelion dbname=area port=5432 sslmode=disable"
+      PUBLIC_URL: "http://localhost:8080"
+      JWT_TOKENS_SECRET: ${JWT_TOKENS_SECRET}
+      GITHUB_OAUTH2_CLIENT_ID: ${GITHUB_OAUTH2_CLIENT_ID}
+      GITHUB_OAUTH2_CLIENT_SECRET: ${GITHUB_OAUTH2_CLIENT_SECRET}
+
 volumes:
   db_data:
