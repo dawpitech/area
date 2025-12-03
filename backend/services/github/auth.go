@@ -3,13 +3,14 @@ package github
 import (
 	"context"
 	"dawpitech/area/initializers"
+	"dawpitech/area/models"
+	"encoding/hex"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
+	"math/rand"
 	"net/http"
 	"strings"
 )
-
-var STATE = "random"
 
 func scopeStringFromToken(token *oauth2.Token) (string, bool) {
 	if token == nil {
@@ -31,12 +32,45 @@ func scopeStringFromToken(token *oauth2.Token) (string, bool) {
 }
 
 func AuthInit(g *gin.Context) error {
-	g.Redirect(http.StatusTemporaryRedirect, oauthConfig.AuthCodeURL(STATE))
+	maybeUser, ok := g.Get("user")
+
+	if !ok {
+		g.AbortWithStatus(http.StatusBadRequest)
+		return nil
+	}
+
+	var user models.User
+	switch u := maybeUser.(type) {
+	case models.User:
+		user = u
+	case *models.User:
+		user = *u
+	default:
+		g.AbortWithStatus(http.StatusInternalServerError)
+		return nil
+	}
+
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		g.AbortWithStatus(http.StatusInternalServerError)
+		return nil
+	}
+	randomString := hex.EncodeToString(bytes)
+	AuthStateMap[randomString] = user.ID
+
+	g.Redirect(http.StatusTemporaryRedirect, oauthConfig.AuthCodeURL(randomString))
 	return nil
 }
 
 func AuthCallback(g *gin.Context) error {
-	if reqState, ok := g.GetQuery("state"); !ok || reqState != STATE {
+	reqState, ok := g.GetQuery("state")
+	if !ok {
+		g.AbortWithStatus(http.StatusBadRequest)
+		return nil
+	}
+
+	val, ok := AuthStateMap[reqState]
+	if !ok {
 		g.AbortWithStatus(http.StatusBadRequest)
 		return nil
 	}
@@ -61,7 +95,7 @@ func AuthCallback(g *gin.Context) error {
 	}
 
 	model := &ProviderGithubAuthData{
-		UserID:       0,
+		UserID:       val,
 		AccessToken:  token.AccessToken,
 		RefreshToken: token.RefreshToken,
 		TokenExpiry:  token.Expiry,
