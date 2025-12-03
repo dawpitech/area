@@ -9,6 +9,7 @@ import (
 	"github.com/loopfz/gadgeto/tonic"
 	"github.com/loopfz/gadgeto/tonic/utils/jujerr"
 	"github.com/wI2L/fizz"
+	"github.com/wI2L/fizz/openapi"
 	"log"
 	"time"
 )
@@ -25,7 +26,7 @@ func main() {
 	}
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8081"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8081", "http://localhost:8082"},
 		AllowMethods:     []string{"GET", "PATCH", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -59,6 +60,23 @@ func main() {
 		},
 		tonic.Handler(controllers.GetAbout, 200),
 	)
+
+	fizzRouter.Generator().SetSecuritySchemes(map[string]*openapi.SecuritySchemeOrRef{
+		"bearerAuth": {
+			SecurityScheme: &openapi.SecurityScheme{
+				Type:         "http",
+				Scheme:       "bearer",
+				BearerFormat: "JWT",
+			},
+		},
+	})
+
+	infos := &openapi.Info{
+		Title:       "Area API",
+		Description: "TODO",
+		Version:     "0.1.0",
+	}
+	fizzRouter.GET("/openapi.json", nil, fizzRouter.OpenAPI(infos, "json"))
 
 	services.RegisterServiceRoutes(fizzRouter)
 
