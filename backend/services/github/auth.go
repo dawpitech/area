@@ -30,45 +30,47 @@ func scopeStringFromToken(token *oauth2.Token) (string, bool) {
 	}
 }
 
-// route: /auth/github/init
-func AuthInit(g *gin.Context) {
+func AuthInit(g *gin.Context) error {
 	g.Redirect(http.StatusTemporaryRedirect, oauthConfig.AuthCodeURL(STATE))
+	return nil
 }
 
-// route: /auth/github/callback
-func AuthCallback(g *gin.Context) {
+func AuthCallback(g *gin.Context) error {
 	if reqState, ok := g.GetQuery("state"); !ok || reqState != STATE {
 		g.AbortWithStatus(http.StatusBadRequest)
-		return
+		return nil
 	}
 
 	codeState, ok := g.GetQuery("code")
 	if !ok {
 		g.AbortWithStatus(http.StatusBadRequest)
-		return
+		return nil
 	}
 
 	token, err := oauthConfig.Exchange(context.Background(), codeState)
 
 	if err != nil {
 		g.AbortWithStatus(http.StatusBadRequest)
-		return
+		return nil
 	}
 
 	scope, ok := scopeStringFromToken(token)
 	if !ok {
 		g.AbortWithStatus(http.StatusInternalServerError)
-		return
+		return nil
 	}
 
-	if rst := initializers.DB.Create(ProviderGithubAuthData{
+	model := &ProviderGithubAuthData{
 		UserID:       0,
 		AccessToken:  token.AccessToken,
 		RefreshToken: token.RefreshToken,
 		TokenExpiry:  token.Expiry,
 		Scope:        scope,
-	}); rst.Error != nil {
-		g.AbortWithStatus(http.StatusInternalServerError)
-		return
 	}
+
+	if rst := initializers.DB.Create(&model); rst.Error != nil {
+		g.AbortWithStatus(http.StatusInternalServerError)
+		return nil
+	}
+	return nil
 }

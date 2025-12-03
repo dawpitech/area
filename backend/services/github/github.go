@@ -2,18 +2,11 @@ package github
 
 import (
 	"dawpitech/area/models"
+	_ "github.com/joho/godotenv/autoload" // Assure that
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 	"os"
 )
-
-var oauthConfig = &oauth2.Config{
-	ClientID:     os.Getenv("DISCORD_OAUTH2_CLIENT_ID"),
-	ClientSecret: os.Getenv("DISCORD_OAUTH2_CLIENT_SECRET"),
-	Endpoint:     github.Endpoint,
-	RedirectURL:  "http://localhost:3000/auth/github/callback",
-	Scopes:       nil,
-}
 
 var Provider = models.Service{
 	Name:    "Github",
@@ -27,8 +20,21 @@ var Provider = models.Service{
 			},
 		},
 	},
-	AuthMethod: nil,
+	AuthMethod: &models.Authentification{
+		HandlerAuthInit:     AuthInit,
+		HandlerAuthCallback: AuthCallback,
+		RouteAuthInit:       "/providers/github/auth/init",
+		RouteAuthCallback:   "/providers/github/auth/callback",
+	},
 	DBModels: []interface{}{
 		&ProviderGithubAuthData{},
 	},
+}
+
+var oauthConfig = &oauth2.Config{
+	ClientID:     os.Getenv("DISCORD_OAUTH2_CLIENT_ID"),
+	ClientSecret: os.Getenv("DISCORD_OAUTH2_CLIENT_SECRET"),
+	Endpoint:     github.Endpoint,
+	RedirectURL:  os.Getenv("PUBLIC_URL") + "/providers/github/auth/callback",
+	Scopes:       nil,
 }

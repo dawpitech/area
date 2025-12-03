@@ -27,7 +27,7 @@ func main() {
 
 	for i := 0; i < len(services.Services); i++ {
 		log.Printf("Migrating service '%s' tables.\n", services.Services[i].Name)
-		err = initializers.DB.AutoMigrate(services.Services[i].DBModels)
+		err = initializers.DB.AutoMigrate(services.Services[i].DBModels...)
 
 		if err != nil {
 			log.Panic(err.Error())
