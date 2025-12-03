@@ -16,7 +16,8 @@ var Provider = models.Service{
 	Actions: []models.Action{},
 	Reactions: []models.Reaction{
 		{
-			Name: "Create an issue",
+			Name:        "Create an issue",
+			Description: "Create an issue on a github repository",
 			Parameters: []string{
 				"target_repository",
 			},

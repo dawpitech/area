@@ -52,6 +52,14 @@ func main() {
 		tonic.Handler(controllers.LoginUser, 200),
 	)
 
+	fizzRouter.GET(
+		"/about.json",
+		[]fizz.OperationOption{
+			fizz.Summary("Retrieve about.json"),
+		},
+		tonic.Handler(controllers.GetAbout, 200),
+	)
+
 	services.RegisterServiceRoutes(fizzRouter)
 
 	if err := router.Run("0.0.0.0:8080"); err != nil {

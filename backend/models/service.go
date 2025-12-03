@@ -13,14 +13,16 @@ type Authentification struct {
 }
 
 type Action struct {
-	Name       string
-	Parameters []string
+	Name        string
+	Description string
+	Parameters  []string
 }
 
 type Reaction struct {
-	Name       string
-	Parameters []string
-	Handler    HandlerCallback
+	Name        string
+	Description string
+	Parameters  []string
+	Handler     HandlerCallback
 }
 
 type Service struct {
