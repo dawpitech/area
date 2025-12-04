@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/authContext'
 
 const Header = () => {
   const navigate = useNavigate()
-  const { userLoggedIn, logout } = useAuth()
+  const { userLoggedIn, email, logout } = useAuth()
 
   const handleLogout = () => {
     logout()
@@ -13,9 +13,22 @@ const Header = () => {
 
   return (
     <nav className="flex flex-row items-center justify-between w-full h-12 fixed top-0 left-0 z-20 px-4 bg-blue-600 text-white border-b">
+      {/* Logo à gauche */}
       <div className="font-semibold">
         logo
       </div>
+
+      {/* Message au milieu */}
+      <div className="text-sm font-medium text-center flex-1 flex justify-center">
+        {userLoggedIn && email && (
+          <span>
+            Logged in as:&nbsp;
+            <span className="underline">{email}</span>
+          </span>
+        )}
+      </div>
+
+      {/* Bouton à droite */}
       <div>
         {userLoggedIn ? (
           <button
