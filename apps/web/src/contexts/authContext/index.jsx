@@ -1,5 +1,28 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { apiSignIn, apiSignUp } from '../../api/auth'
+const TOKEN_COOKIE_NAME = 'auth_token'
+const TOKEN_TTL_SECONDS = 24 * 60 * 60
+
+function setTokenCookie(token) {
+  document.cookie = `${TOKEN_COOKIE_NAME}=${encodeURIComponent(
+    token
+  )}; Path=/; Max-Age=${TOKEN_TTL_SECONDS}; SameSite=Lax`
+}
+
+function clearTokenCookie() {
+  document.cookie = `${TOKEN_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`
+}
+
+function getTokenFromCookie() {
+  const cookies = document.cookie.split(';').map(c => c.trim())
+  for (const c of cookies) {
+    if (c.startsWith(`${TOKEN_COOKIE_NAME}=`)) {
+      return decodeURIComponent(c.substring(TOKEN_COOKIE_NAME.length + 1))
+    }
+  }
+  return null
+}
+
 
 const AuthContext = createContext(null)
 
@@ -9,10 +32,16 @@ export const AuthProvider = ({ children }) => {
   const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('auth_token')
+    const cookieToken = getTokenFromCookie()
     const storedEmail = localStorage.getItem('auth_email')
-    if (storedToken) setToken(storedToken)
-    if (storedEmail) setEmail(storedEmail)
+
+    if (cookieToken) {
+      setToken(cookieToken)
+    }
+    if (storedEmail) {
+      setEmail(storedEmail)
+    }
+
     setIsHydrated(true)
   }, [])
 
@@ -23,7 +52,8 @@ export const AuthProvider = ({ children }) => {
 
     setToken(newToken)
     setEmail(newEmail)
-    localStorage.setItem('auth_token', newToken)
+
+    setTokenCookie(newToken)
     localStorage.setItem('auth_email', newEmail)
   }
 
@@ -34,14 +64,15 @@ export const AuthProvider = ({ children }) => {
 
     setToken(newToken)
     setEmail(newEmail)
-    localStorage.setItem('auth_token', newToken)
+
+    setTokenCookie(newToken)
     localStorage.setItem('auth_email', newEmail)
   }
 
   const logout = () => {
     setToken(null)
     setEmail(null)
-    localStorage.removeItem('auth_token')
+    clearTokenCookie()
     localStorage.removeItem('auth_email')
   }
 

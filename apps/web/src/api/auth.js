@@ -1,12 +1,32 @@
 const API_ROOT = 'http://localhost:8080'
+const TOKEN_COOKIE_NAME = 'auth_token'
+
+function getTokenFromCookie() {
+    const cookies = document.cookie.split(';').map(c => c.trim())
+    for (const c of cookies) {
+        if (c.startsWith(`${TOKEN_COOKIE_NAME}=`)) {
+            return decodeURIComponent(c.substring(TOKEN_COOKIE_NAME.length + 1))
+        }
+    }
+    return null
+}
 
 async function request(path, options = {}) {
+    const token = getTokenFromCookie()
+
+
+    const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+    }
+
+    if (token) {
+        headers.Authorization = `Bearer ${token}`
+    }
+
     const res = await fetch(`${API_ROOT}${path}`, {
-        headers: {
-            'Content-Type': 'application/json',
-            ...(options.headers || {}),
-        },
         ...options,
+        headers,
     })
 
     const text = await res.text()

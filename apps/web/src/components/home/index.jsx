@@ -6,21 +6,26 @@ import { FiEye, FiEyeOff } from 'react-icons/fi'
 const BACKEND_URL = 'http://localhost:8080'
 
 const Home = () => {
-  const { email } = useAuth()
+  const { email, token } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
 
   const displayedPassword = showPassword ? 'not-stored-client-side' : '************'
 
   const handleConnect = (provider) => {
     switch (provider) {
-      case 'github':
+      case 'github': {
+        if (!token) {
+          alert('You must be logged in to connect GitHub.')
+          return
+        }
         window.location.href = `${BACKEND_URL}/providers/github/auth/init`
         break
+      }
       case 'discord':
       case 'steam':
       case 'instagram':
       default:
-        alert(`Connexion ${provider} pas encore implémentée`)
+        alert(`Connexion ${provider} pas encore implémentée 🙂`)
         break
     }
   }
