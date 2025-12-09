@@ -6,10 +6,11 @@ import (
 	"log"
 )
 
-var scheduler, err = gocron.NewScheduler()
+var scheduler gocron.Scheduler
 
 func init() {
-	if err != nil {
+	var err error
+	if scheduler, err = gocron.NewScheduler(); err != nil {
 		log.Panic("Module timer couldn't init a job scheduler")
 	}
 	scheduler.Start()
@@ -22,17 +23,20 @@ var Provider = models.Service{
 		{
 			Name:        "timer_cron_job",
 			PrettyName:  "Repeat every",
-			Description: "SetupTrigger a workflow every x amount of time",
+			Description: "Trigger a workflow every x amount of time",
 			Parameters: []string{
 				"cron",
 			},
 			SetupTrigger: TriggerLaunchNewCronJob,
 		},
 		{
-			Name:        "timer_wip",
-			PrettyName:  "(WIP) Execute at every",
-			Description: "(WIP) SetupTrigger a workflow at a specific time in the day",
-			Parameters:  nil,
+			Name:        "timer_precise_run",
+			PrettyName:  "Execute at",
+			Description: "Trigger a workflow at a specific time in the day, format is (hour:min:sec); ex: (18:30:59)",
+			Parameters: []string{
+				"time",
+			},
+			SetupTrigger: TriggerLaunchAtJob,
 		},
 	},
 	Reactions:  []models.Reaction{},
