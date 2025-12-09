@@ -4,6 +4,7 @@ import (
 	"dawpitech/area/engine"
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
+	"dawpitech/area/models/routes"
 	"dawpitech/area/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/juju/errors"
@@ -18,7 +19,7 @@ func GetAllWorkflows(_ *gin.Context) (*[]models.Workflow, error) {
 	return &workflows, nil
 }
 
-func CreateNewWorkflow(c *gin.Context) (*models.Workflow, error) {
+func CreateNewWorkflow(c *gin.Context, in *routes.CreateNewWorkflowRequest) (*models.Workflow, error) {
 	maybeUser, ok := c.Get("user")
 	if !ok {
 		return nil, errors.BadRequest
@@ -30,17 +31,11 @@ func CreateNewWorkflow(c *gin.Context) (*models.Workflow, error) {
 	}
 
 	workflow := models.Workflow{
-		OwnerUserID: user.ID,
-		ActionName:  "test_action",
-		ActionParameters: []string{
-			"test_parameter_1",
-			"test_parameter_2",
-		},
-		ReactionName: "test_reaction",
-		ReactionParameters: []string{
-			"test_parameter_3",
-			"test_parameter_4",
-		},
+		OwnerUserID:        user.ID,
+		ActionName:         in.ActionName,
+		ActionParameters:   in.ActionParameters,
+		ReactionName:       in.ReactionName,
+		ReactionParameters: in.ReactionParameters,
 	}
 	if rst := initializers.DB.Create(&workflow); rst.Error != nil {
 		return nil, errors.New("Internal server error")
