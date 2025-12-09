@@ -1,6 +1,19 @@
 package models
 
-type HandlerCallback func() error
+type HandlerContext struct {
+	OwnerUserID        uint
+	ReactionParameters []string
+}
+
+type TriggerContext struct {
+	OwnerUserID      uint
+	ActionParameters []string
+	ReactionContext  HandlerContext
+	ReactionHandler  HandlerCallback
+}
+
+type HandlerCallback func(HandlerContext) error
+type TriggerSetup func(TriggerContext) error
 
 type Trigger struct {
 }
@@ -13,13 +26,16 @@ type Authentification struct {
 }
 
 type Action struct {
-	Name        string
-	Description string
-	Parameters  []string
+	Name         string
+	PrettyName   string
+	Description  string
+	Parameters   []string
+	SetupTrigger TriggerSetup
 }
 
 type Reaction struct {
 	Name        string
+	PrettyName  string
 	Description string
 	Parameters  []string
 	Handler     HandlerCallback

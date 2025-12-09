@@ -1,6 +1,12 @@
 package models
 
+import "gorm.io/gorm"
+
 type Workflow struct {
-	Action   Action
-	Reaction Reaction
+	gorm.Model
+	OwnerUserID        uint
+	ActionName         string
+	ActionParameters   []string `gorm:"serializer:json"`
+	ReactionName       string
+	ReactionParameters []string `gorm:"serializer:json"`
 }

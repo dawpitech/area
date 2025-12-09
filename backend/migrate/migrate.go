@@ -19,6 +19,7 @@ func main() {
 	err := initializers.DB.AutoMigrate(
 		&models.User{},
 		&models.AuthMethods{},
+		&models.Workflow{},
 	)
 
 	if err != nil {
