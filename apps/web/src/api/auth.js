@@ -14,7 +14,6 @@ function getTokenFromCookie() {
 async function request(path, options = {}) {
     const token = getTokenFromCookie()
 
-
     const headers = {
         'Content-Type': 'application/json',
         ...(options.headers || {}),
@@ -56,5 +55,11 @@ export function apiSignUp(email, password) {
     return request('/auth/signup', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
+    })
+}
+
+export function apiGithubInit(token) {
+    return request('/providers/github/auth/init', {
+        method: 'GET',
     })
 }

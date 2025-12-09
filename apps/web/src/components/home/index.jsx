@@ -2,8 +2,7 @@ import React, { useState } from 'react'
 import { useAuth } from '../../contexts/authContext'
 import { FaGithub, FaDiscord, FaSteam, FaInstagram } from 'react-icons/fa'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
-
-const BACKEND_URL = 'http://localhost:8080'
+import { apiGithubInit } from '../../api/auth'
 
 const Home = () => {
   const { email, token } = useAuth()
@@ -11,21 +10,31 @@ const Home = () => {
 
   const displayedPassword = showPassword ? 'not-stored-client-side' : '************'
 
-  const handleConnect = (provider) => {
+  const handleConnect = async (provider) => {
     switch (provider) {
       case 'github': {
         if (!token) {
           alert('You must be logged in to connect GitHub.')
           return
         }
-        window.location.href = `${BACKEND_URL}/providers/github/auth/init`
+        try {
+          const data = await apiGithubInit()
+          console.log('GitHub init ok:', data)
+          if (data && data.redirect_to) {
+            window.open(data.redirect_to, '_blank', 'noopener,noreferrer')
+          }
+        } catch (err) {
+          console.error(err)
+          alert('Erreur lors de l’appel backend')
+        }
         break
       }
+
       case 'discord':
       case 'steam':
       case 'instagram':
       default:
-        alert(`Connexion ${provider} pas encore implémentée 🙂`)
+        alert(`Connexion ${provider} pas encore implémentée`)
         break
     }
   }
