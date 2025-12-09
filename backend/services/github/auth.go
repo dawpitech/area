@@ -45,13 +45,21 @@ func AuthInit(g *gin.Context) error {
 		return errors.BadRequest
 	}
 
+	redirectURI := g.Query("redirect_uri")
+	if redirectURI == "" {
+		redirectURI = os.Getenv("PROVIDER_OAUTH2_CALLBACK_URL")
+	}
+
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
 		g.AbortWithStatus(http.StatusInternalServerError)
 		return nil
 	}
 	randomString := hex.EncodeToString(bytes)
-	AuthStateMap[randomString] = user.ID
+	AuthStateMap[randomString] = AuthStateData{
+		UserID:      user.ID,
+		RedirectURI: redirectURI,
+	}
 
 	g.IndentedJSON(http.StatusOK, gin.H{
 		"redirect_to": oauthConfig.AuthCodeURL(randomString),
@@ -67,11 +75,13 @@ func AuthCallback(g *gin.Context) error {
 		return nil
 	}
 
-	val, ok := AuthStateMap[reqState]
+	stateData, ok := AuthStateMap[reqState]
 	if !ok {
 		g.AbortWithStatus(http.StatusBadRequest)
 		return nil
 	}
+
+	defer delete(AuthStateMap, reqState)
 
 	codeState, ok := g.GetQuery("code")
 	if !ok {
@@ -93,7 +103,7 @@ func AuthCallback(g *gin.Context) error {
 	}
 
 	model := &ProviderGithubAuthData{
-		UserID:       val,
+		UserID:       stateData.UserID,
 		AccessToken:  token.AccessToken,
 		RefreshToken: token.RefreshToken,
 		TokenExpiry:  token.Expiry,
@@ -104,6 +114,19 @@ func AuthCallback(g *gin.Context) error {
 		g.AbortWithStatus(http.StatusInternalServerError)
 		return nil
 	}
-	g.Redirect(http.StatusTemporaryRedirect, os.Getenv("PROVIDER_OAUTH2_CALLBACK_URL"))
+
+	redirectURI := stateData.RedirectURI
+	if redirectURI == "" {
+		redirectURI = g.Query("redirect_uri")
+	}
+	if redirectURI == "" {
+		redirectURI = os.Getenv("PROVIDER_OAUTH2_CALLBACK_URL")
+	}
+
+	if redirectURI == "" {
+		redirectURI = "/"
+	}
+
+	g.Redirect(http.StatusTemporaryRedirect, redirectURI)
 	return nil
 }

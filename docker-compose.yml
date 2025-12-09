@@ -39,11 +39,11 @@ services:
       - 8080:8080
     environment:
       DB_URI: "host=db user=shinji password=evangelion dbname=area port=5432 sslmode=disable"
-      PUBLIC_URL: "http://localhost:8080"
+      PUBLIC_URL: "http://192.168.1.20:8080"
       JWT_TOKENS_SECRET: ${JWT_TOKENS_SECRET}
       GITHUB_OAUTH2_CLIENT_ID: ${GITHUB_OAUTH2_CLIENT_ID}
       GITHUB_OAUTH2_CLIENT_SECRET: ${GITHUB_OAUTH2_CLIENT_SECRET}
-      PROVIDER_OAUTH2_CALLBACK_URL: "http://localhost:3000/home"
+      PROVIDER_OAUTH2_CALLBACK_URL: "http://192.168.1.20:8080/providers/github/auth/callback?app_redirect=area://home"
 
   swagger:
     image: swaggerapi/swagger-ui
@@ -51,7 +51,7 @@ services:
     ports:
       - 8082:8080
     environment:
-      SWAGGER_JSON_URL: "http://localhost:8080/openapi.json"
+      SWAGGER_JSON_URL: "http://192.168.1.20:8080/openapi.json"
 #      BASE_URL: "/api/docs"
 
 volumes:
