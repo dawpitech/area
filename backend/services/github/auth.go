@@ -93,11 +93,9 @@ func AuthCallback(g *gin.Context) error {
 	}
 
 	model := &ProviderGithubAuthData{
-		UserID:       val,
-		AccessToken:  token.AccessToken,
-		RefreshToken: token.RefreshToken,
-		TokenExpiry:  token.Expiry,
-		Scope:        scope,
+		UserID:      val,
+		AccessToken: token.AccessToken,
+		Scope:       scope,
 	}
 
 	if rst := initializers.DB.Create(&model); rst.Error != nil {
