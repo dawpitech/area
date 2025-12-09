@@ -43,6 +43,7 @@ services:
       JWT_TOKENS_SECRET: ${JWT_TOKENS_SECRET}
       GITHUB_OAUTH2_CLIENT_ID: ${GITHUB_OAUTH2_CLIENT_ID}
       GITHUB_OAUTH2_CLIENT_SECRET: ${GITHUB_OAUTH2_CLIENT_SECRET}
+      PROVIDER_OAUTH2_CALLBACK_URL: "http://localhost:3000/home"
 
   swagger:
     image: swaggerapi/swagger-ui

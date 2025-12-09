@@ -60,6 +60,7 @@ func CheckAuth(c *gin.Context) {
 			return
 		}
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		return
 	}
 
 	c.Set("user", user)

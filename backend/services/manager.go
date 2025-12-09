@@ -6,6 +6,7 @@ import (
 	"dawpitech/area/services/github"
 	"github.com/loopfz/gadgeto/tonic"
 	"github.com/wI2L/fizz"
+	"github.com/wI2L/fizz/openapi"
 )
 
 var Services = []models.Service{
@@ -17,7 +18,11 @@ func RegisterServiceRoutes(router *fizz.Fizz) {
 		service := Services[i]
 		router.GET(
 			service.AuthMethod.RouteAuthInit,
-			[]fizz.OperationOption{},
+			[]fizz.OperationOption{
+				fizz.Security(&openapi.SecurityRequirement{
+					"bearerAuth": []string{},
+				}),
+			},
 			middlewares.CheckAuth,
 			tonic.Handler(service.AuthMethod.HandlerAuthInit, 200),
 		)

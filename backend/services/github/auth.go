@@ -3,12 +3,14 @@ package github
 import (
 	"context"
 	"dawpitech/area/initializers"
-	"dawpitech/area/models"
+	"dawpitech/area/utils"
 	"encoding/hex"
 	"github.com/gin-gonic/gin"
+	"github.com/juju/errors"
 	"golang.org/x/oauth2"
 	"math/rand"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -35,19 +37,12 @@ func AuthInit(g *gin.Context) error {
 	maybeUser, ok := g.Get("user")
 
 	if !ok {
-		g.AbortWithStatus(http.StatusBadRequest)
-		return nil
+		return errors.BadRequest
 	}
 
-	var user models.User
-	switch u := maybeUser.(type) {
-	case models.User:
-		user = u
-	case *models.User:
-		user = *u
-	default:
-		g.AbortWithStatus(http.StatusInternalServerError)
-		return nil
+	user, ok := utils.MaybeGetUser(maybeUser)
+	if !ok {
+		return errors.BadRequest
 	}
 
 	bytes := make([]byte, 16)
@@ -58,7 +53,10 @@ func AuthInit(g *gin.Context) error {
 	randomString := hex.EncodeToString(bytes)
 	AuthStateMap[randomString] = user.ID
 
-	g.Redirect(http.StatusTemporaryRedirect, oauthConfig.AuthCodeURL(randomString))
+	g.IndentedJSON(http.StatusOK, gin.H{
+		"redirect_to": oauthConfig.AuthCodeURL(randomString),
+	})
+
 	return nil
 }
 
@@ -106,5 +104,6 @@ func AuthCallback(g *gin.Context) error {
 		g.AbortWithStatus(http.StatusInternalServerError)
 		return nil
 	}
+	g.Redirect(http.StatusTemporaryRedirect, os.Getenv("PROVIDER_OAUTH2_CALLBACK_URL"))
 	return nil
 }
