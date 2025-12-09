@@ -28,8 +28,6 @@ func Init() {
 			ReactionStore[service.Reactions[x].Name] = service.Reactions[x]
 		}
 	}
-	print(ActionStore)
-	print(ReactionStore)
 }
 
 func RegisterServiceRoutes(router *fizz.Fizz) {
