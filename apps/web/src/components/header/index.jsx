@@ -13,19 +13,41 @@ const Header = () => {
 
   return (
     <nav className="flex flex-row items-center justify-between w-full h-12 fixed top-0 left-0 z-20 px-4 bg-blue-600 text-white border-b">
+      {/* Logo à gauche */}
       <div className="font-semibold">
         logo
       </div>
 
-      <div className="text-sm font-medium text-center flex-1 flex justify-center">
+      {/* Zone centrale : visible uniquement si connecté */}
+      <div className="flex-1 flex items-center justify-center">
         {userLoggedIn && email && (
-          <span>
-            Logged in as:&nbsp;
-            <span className="underline">{email}</span>
-          </span>
+          <div className="flex items-center gap-6 text-sm font-medium">
+            {/* Homepage */}
+            <Link
+              to="/home"
+              className="underline hover:no-underline hover:opacity-80 transition"
+            >
+              Homepage
+            </Link>
+
+            {/* Texte de connexion */}
+            <span className="text-center">
+              Logged in as:&nbsp;
+              <span className="underline">{email}</span>
+            </span>
+
+            {/* Workflows */}
+            <Link
+              to="/workflow"
+              className="underline hover:no-underline hover:opacity-80 transition"
+            >
+              Workflows
+            </Link>
+          </div>
         )}
       </div>
 
+      {/* Bouton à droite : login / logout */}
       <div>
         {userLoggedIn ? (
           <button
