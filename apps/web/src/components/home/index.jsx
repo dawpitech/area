@@ -1,14 +1,39 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/authContext'
+import { apiGithubInit, apiGithubCheck } from '../../api/auth'
 import { FaGithub, FaDiscord, FaSteam, FaInstagram } from 'react-icons/fa'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
-import { apiGithubInit } from '../../api/auth'
 
 const Home = () => {
   const { email, token } = useAuth()
-  const [showPassword, setShowPassword] = useState(false)
 
+  const [showPassword, setShowPassword] = useState(false)
   const displayedPassword = showPassword ? 'not-stored-client-side' : '************'
+
+  const [githubConnected, setGithubConnected] = useState(false)
+  const [checkingGithub, setCheckingGithub] = useState(false)
+
+  useEffect(() => {
+    if (!token) {
+      setGithubConnected(false)
+      return
+    }
+
+    const check = async () => {
+      try {
+        setCheckingGithub(true)
+        const data = await apiGithubCheck()
+        setGithubConnected(!!data.is_connected)
+      } catch (err) {
+        console.error('GitHub check error:', err)
+        setGithubConnected(false)
+      } finally {
+        setCheckingGithub(false)
+      }
+    }
+
+    check()
+  }, [token])
 
   const handleConnect = async (provider) => {
     switch (provider) {
@@ -17,15 +42,19 @@ const Home = () => {
           alert('You must be logged in to connect GitHub.')
           return
         }
+        if (githubConnected) return
+
         try {
           const data = await apiGithubInit()
-          console.log('GitHub init ok:', data)
           if (data && data.redirect_to) {
             window.open(data.redirect_to, '_blank', 'noopener,noreferrer')
+          } else {
+            console.error('Unexpected GitHub init response:', data)
+            alert('Erreur: missing redirect URL')
           }
         } catch (err) {
           console.error(err)
-          alert('Erreur lors de l’appel backend')
+          alert('Erreur lors de la connexion GitHub (voir console).')
         }
         break
       }
@@ -83,7 +112,7 @@ const Home = () => {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
+                  onClick={() => setShowPassword(prev => !prev)}
                   className="absolute inset-y-0 right-2 my-auto flex items-center justify-center text-gray-500 hover:text-indigo-600 transition"
                   aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 >
@@ -109,13 +138,23 @@ const Home = () => {
             <button
               type="button"
               onClick={() => handleConnect('github')}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border shadow-sm 
-                         bg-gray-900 text-white
-                         transition duration-300 ease-out
-                         hover:-translate-y-0.5 hover:shadow-xl hover:ring-2 hover:ring-gray-400/70"
+              disabled={githubConnected || checkingGithub}
+              className={
+                'flex items-center justify-center gap-2 px-4 py-3 rounded-lg border shadow-sm transition duration-300 ease-out ' +
+                (githubConnected
+                  ? 'bg-green-600 text-white cursor-default'
+                  : 'bg-gray-900 text-white hover:-translate-y-0.5 hover:shadow-xl hover:ring-2 hover:ring-gray-400/70') +
+                (checkingGithub ? ' opacity-70 cursor-wait' : '')
+              }
             >
               <FaGithub size={18} />
-              <span className="font-medium text-sm">Connect GitHub</span>
+              <span className="font-medium text-sm">
+                {checkingGithub
+                  ? 'Checking...'
+                  : githubConnected
+                    ? 'Connected to Github'
+                    : 'Connect Github'}
+              </span>
             </button>
             <button
               type="button"

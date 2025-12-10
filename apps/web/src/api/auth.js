@@ -64,6 +64,12 @@ export function apiGithubInit(token) {
     })
 }
 
+export function apiGithubCheck() {
+    return request('/providers/github/auth/check', {
+        method: 'GET',
+    })
+}
+
 export function apiGetWorkflows() {
     return request('/workflows', {
         method: 'GET',
