@@ -43,7 +43,7 @@ services:
       JWT_TOKENS_SECRET: ${JWT_TOKENS_SECRET}
       GITHUB_OAUTH2_CLIENT_ID: ${GITHUB_OAUTH2_CLIENT_ID}
       GITHUB_OAUTH2_CLIENT_SECRET: ${GITHUB_OAUTH2_CLIENT_SECRET}
-      PROVIDER_OAUTH2_CALLBACK_URL_WEB: "http://localhost:3000/home"
+      PROVIDER_OAUTH2_CALLBACK_URL_WEB: "http://localhost:8081/home"
       PROVIDER_OAUTH2_CALLBACK_URI_MOBILE: "area://home"
 
   swagger:
@@ -55,5 +55,19 @@ services:
       SWAGGER_JSON_URL: "http://localhost:8080/openapi.json"
 #      BASE_URL: "/api/docs"
 
+  client_web:
+    build:
+      context: apps/web
+    ports:
+      - 8081:3000
+
+  # client_mobile:
+  #   build:
+  #     context: apps/mobile
+  #   volumes:
+  #     - apk_data:/apk-output
+  #   restart: no
+
 volumes:
   db_data:
+  apk_data:

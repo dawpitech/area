@@ -36,7 +36,8 @@ func HandlerCreateAnIssue(ctx models.HandlerContext) error {
 
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		log.Fatal("Request body cannot be converted to JSON, please fix.")
+		log.Fatal(err.Error())
+		return errors.New("Request body cannot be converted to JSON, please fix.")
 	}
 
 	url := fmt.Sprintf("https://api.github.com/repos/%s/issues", ctx.ReactionParameters[0])
@@ -66,7 +67,7 @@ func HandlerCreateAnIssue(ctx models.HandlerContext) error {
 	}(resp.Body)
 
 	_, _ = io.ReadAll(resp.Body)
-	//fmt.Printf("Response status: %s\n", resp.Status)
+	fmt.Printf("Response status: %s\n", resp.Status)
 	//fmt.Printf("Response body:\n%s\n", string(respBody))
 	return nil
 }

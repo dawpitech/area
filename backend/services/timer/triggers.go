@@ -4,6 +4,7 @@ import (
 	"dawpitech/area/models"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/juju/errors"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -48,8 +49,13 @@ func TriggerLaunchNewCronJob(ctx models.TriggerContext) error {
 	_, err := scheduler.NewJob(
 		gocron.CronJob(crontab, false),
 		gocron.NewTask(
-			ctx.ReactionHandler,
-			ctx.ReactionContext,
+			func() {
+				log.Println("Running")
+				err := ctx.ReactionHandler(ctx.ReactionContext)
+				if err != nil {
+					log.Print(err.Error())
+				}
+			},
 		),
 	)
 
