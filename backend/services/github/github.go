@@ -21,11 +21,13 @@ var Provider = models.Service{
 	Actions: []models.Action{},
 	Reactions: []models.Reaction{
 		{
-			Name:        "Create an issue",
+			Name:        "github_create_issue",
+			PrettyName:  "Create an issue",
 			Description: "Create an issue on a github repository",
 			Parameters: []string{
 				"target_repository",
 			},
+			Handler: HandlerCreateAnIssue,
 		},
 	},
 	AuthMethod: &models.Authentification{
@@ -44,5 +46,7 @@ var oauthConfig = &oauth2.Config{
 	ClientSecret: os.Getenv("GITHUB_OAUTH2_CLIENT_SECRET"),
 	Endpoint:     github.Endpoint,
 	RedirectURL:  os.Getenv("PUBLIC_URL") + "/providers/github/auth/callback",
-	Scopes:       nil,
+	Scopes: []string{
+		"repo",
+	},
 }

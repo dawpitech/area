@@ -17,14 +17,14 @@ func GetAbout(c *gin.Context) (*routes.AboutResponse, error) {
 		for y := 0; y < len(service.Actions); y++ {
 			act := service.Actions[y]
 			acts = append(acts, routes.AboutServiceDetail{
-				Name:        act.Name,
+				Name:        act.PrettyName,
 				Description: act.Description,
 			})
 		}
 		for y := 0; y < len(service.Reactions); y++ {
 			react := service.Reactions[y]
 			reacts = append(reacts, routes.AboutServiceDetail{
-				Name:        react.Name,
+				Name:        react.PrettyName,
 				Description: react.Description,
 			})
 		}

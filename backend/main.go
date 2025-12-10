@@ -2,7 +2,9 @@ package main
 
 import (
 	"dawpitech/area/controllers"
+	"dawpitech/area/engine"
 	"dawpitech/area/initializers"
+	"dawpitech/area/middlewares"
 	"dawpitech/area/services"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -17,6 +19,8 @@ import (
 func init() {
 	initializers.LoadEnvironment()
 	initializers.ConnectDB()
+	services.Init()
+	engine.RegisterExistingWorkflows()
 }
 
 func main() {
@@ -59,6 +63,25 @@ func main() {
 			fizz.Summary("Retrieve about.json"),
 		},
 		tonic.Handler(controllers.GetAbout, 200),
+	)
+
+	fizzRouter.GET(
+		"/workflows",
+		[]fizz.OperationOption{
+			fizz.Summary("Retrieve all workflows"),
+		},
+		tonic.Handler(controllers.GetAllWorkflows, 200),
+	)
+	fizzRouter.POST(
+		"/workflows",
+		[]fizz.OperationOption{
+			fizz.Summary("Create a new workflow"),
+			fizz.Security(&openapi.SecurityRequirement{
+				"bearerAuth": []string{},
+			}),
+		},
+		middlewares.CheckAuth,
+		tonic.Handler(controllers.CreateNewWorkflow, 200),
 	)
 
 	fizzRouter.Generator().SetSecuritySchemes(map[string]*openapi.SecuritySchemeOrRef{
