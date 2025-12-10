@@ -1,5 +1,6 @@
 package com.uwu.area
 
+import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.background
@@ -32,6 +33,8 @@ import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import androidx.core.net.toUri
+import java.net.URLEncoder
+import kotlin.io.inputStream
 
 private const val ERROR_DISPLAY_MAX = 200
 
@@ -42,8 +45,8 @@ private fun extractErrorMessageFromJson(jo: JSONObject): String {
             return when (err) {
                 is String -> err
                 is JSONObject -> {
-                    val msg = err.optString("message", err.optString("error", err.optString("detail", err.toString())))
-                    if (msg.isNotBlank()) msg else err.toString()
+                    val msg = err.optString("message", err.optString("error", err.optString("detail", "")))
+                    if (msg.isNotBlank()) msg else "Unknown error"
                 }
                 is JSONArray -> {
                     val parts = mutableListOf<String>()
@@ -53,22 +56,26 @@ private fun extractErrorMessageFromJson(jo: JSONObject): String {
                             parts.add(el?.toString() ?: "")
                         } catch (_: Exception) { }
                     }
-                    parts.joinToString("; ")
+                    val joined = parts.joinToString("; ")
+                    if (joined.isNotBlank()) joined else "Unknown error"
                 }
-                else -> err.toString()
+                else -> err.toString().takeIf { it.isNotBlank() } ?: "Unknown error"
             }
         }
     } catch (_: JSONException) {
     }
     try {
-        if (jo.has("message")) return jo.optString("message", "")
+        if (jo.has("message")) {
+            val m = jo.optString("message", "")
+            if (m.isNotBlank()) return m
+        }
         if (jo.has("status")) {
             val s = jo.optString("status", "")
-            if (!s.equals("ok", ignoreCase = true)) return s
+            if (s.isNotBlank() && !s.equals("ok", ignoreCase = true)) return s
         }
     } catch (_: JSONException) {
     }
-    return jo.toString()
+    return "Unknown error"
 }
 
 suspend fun postJson(path: String, jsonBody: String): Result<String> {
@@ -148,13 +155,36 @@ suspend fun signin(email: String, password: String): Result<String> {
 }
 
 @Composable
-fun AuthHost(onAuthenticated: (token: String) -> Unit) {
+fun AuthHost(onAuthenticated: (token: String, email: String) -> Unit) {
+    val context = LocalContext.current
+    val tokenStore = remember { TokenStore(context) }
+    val prefs = remember {
+        context.getSharedPreferences("area_prefs", MODE_PRIVATE)
+    }
+    val scope = rememberCoroutineScope()
+    
     var mode by remember { mutableStateOf("signin") }
 
+    val onAuthSuccess = { token: String, email: String ->
+        scope.launch {
+            tokenStore.saveToken(token)
+            withContext(Dispatchers.IO) {
+                prefs.edit().putString("auth_email", email).apply()
+            }
+            onAuthenticated(token, email)
+        }
+    }
+
     if (mode == "signin") {
-        SignInScreen(onSwitchToSignUp = { mode = "signup" }, onSignedIn = onAuthenticated)
+        SignInScreen(
+            onSwitchToSignUp = { mode = "signup" },
+            onSignedIn = { token, email -> onAuthSuccess(token, email) }
+        )
     } else {
-        SignUpScreen(onSwitchToSignIn = { mode = "signin" }, onSignedUp = onAuthenticated)
+        SignUpScreen(
+            onSwitchToSignIn = { mode = "signin" },
+            onSignedUp = { token, email -> onAuthSuccess(token, email) }
+        )
     }
 }
 
@@ -181,7 +211,7 @@ fun ErrorPopup(message: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String) -> Unit) {
+fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String, email: String) -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
@@ -203,7 +233,11 @@ fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String) -> Un
                     val res = signin(email, password)
                     loading = false
                     res.fold(onSuccess = { token ->
-                        onSignedIn(token)
+                        if (token == "ok" || token.isBlank()) {
+                            error = "Signin did not return a valid token"
+                        } else {
+                            onSignedIn(token, email)
+                        }
                     }, onFailure = { e ->
                         error = e.message ?: "Unknown error"
                     })
@@ -221,7 +255,7 @@ fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String) -> Un
 }
 
 @Composable
-fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String) -> Unit) {
+fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String, email: String) -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
@@ -242,14 +276,25 @@ fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String) -> Un
                 scope.launch {
                     val res = signup(email, password)
                     if (res.isSuccess) {
-                        val signRes = signin(email, password)
-                        if (signRes.isSuccess) {
-                            val token = signRes.getOrNull() ?: ""
+                        val signupToken = res.getOrNull() ?: ""
+                        if (signupToken.isNotBlank() && signupToken != "ok") {
                             loading = false
-                            onSignedUp(token)
+                            onSignedUp(signupToken, email)
                         } else {
-                            loading = false
-                            error = signRes.exceptionOrNull()?.message ?: "Signin after signup failed"
+                            val signRes = signin(email, password)
+                            if (signRes.isSuccess) {
+                                val token = signRes.getOrNull() ?: ""
+                                if (token.isNotBlank() && token != "ok") {
+                                    loading = false
+                                    onSignedUp(token, email)
+                                } else {
+                                    loading = false
+                                    error = "Signin did not return a valid token"
+                                }
+                            } else {
+                                loading = false
+                                error = signRes.exceptionOrNull()?.message ?: "Signin after signup failed"
+                            }
                         }
                     } else {
                         loading = false
@@ -304,7 +349,8 @@ suspend fun getJson(path: String, token: String? = null): Result<String> {
             } else {
                 try {
                     val jo = JSONObject(respText)
-                    if (jo.has("error")) return@withContext Result.failure(Exception(jo.optString("error", respText)))
+                    val err = extractErrorMessageFromJson(jo)
+                    return@withContext Result.failure(Exception(err))
                 } catch (_: Exception) {}
                 return@withContext Result.failure(Exception(respText))
             }
@@ -315,48 +361,64 @@ suspend fun getJson(path: String, token: String? = null): Result<String> {
     }
 }
 
-suspend fun fetchGithubInit(token: String? = null): Result<String> {
-    return getJson(ApiRoutes.GITHUB_INIT, token)
-}
-
-@Composable
-fun DashboardScreen(token: String, onSignOut: () -> Unit) {
-    val context = LocalContext.current
-    var loading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text(text = "Dashboard")
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "Token: ${token.take(40)}")
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onSignOut) { Text("Sign Out") }
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = {
-            if (loading) return@Button
-            loading = true
-            error = null
-            scope.launch {
-                val res = fetchGithubInit(token)
-                loading = false
-                res.fold(onSuccess = { url ->
-                    try {
-                        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-                        context.startActivity(intent)
-                    } catch (_: Exception) {
-                        error = "Cannot open URL"
-                    }
-                }, onFailure = { e ->
-                    error = e.message
-                })
+suspend fun fetchGithubInit(token: String? = null, redirectUri: String? = null): Result<String> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val query = "?platform=mobile";//if (!redirectUri.isNullOrBlank()) {
+                //"?redirect_uri=" + URLEncoder.encode(redirectUri, "UTF-8")
+            //} else ""
+            val url = URL(ApiRoutes.BASE + ApiRoutes.GITHUB_INIT + query)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                instanceFollowRedirects = false
+                if (!token.isNullOrBlank()) {
+                    setRequestProperty("Authorization", "Bearer $token")
+                }
+                connectTimeout = 5000
+                readTimeout = 5000
             }
-        }) {
-            Text(text = if (loading) "Opening GitHub..." else "Connect GitHub")
-        }
 
-        if (error != null) {
-            ErrorPopup(message = error!!, onDismiss = { error = null })
+            val code = conn.responseCode
+            Log.d("Auth", "GET ${ApiRoutes.GITHUB_INIT} -> code=$code")
+
+            if (code in 300..399) {
+                val location = conn.getHeaderField("Location")
+                if (!location.isNullOrBlank()) {
+                    Log.d("Auth", "Redirect location=$location")
+                    return@withContext Result.success(location)
+                } else {
+                    return@withContext Result.failure(Exception("Redirect without Location header"))
+                }
+            }
+
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("Auth", "GET ${ApiRoutes.GITHUB_INIT} resp=$respText")
+
+            if (code in 200..299) {
+                try {
+                    val jo = JSONObject(respText)
+                    if (jo.has("redirect_to")) {
+                        return@withContext Result.success(jo.optString("redirect_to", ""))
+                    }
+                    if (jo.has("url")) {
+                        return@withContext Result.success(jo.optString("url", ""))
+                    }
+                } catch (_: Exception) {}
+                return@withContext Result.success(respText)
+            } else {
+                try {
+                    val jo = JSONObject(respText)
+                    val err = extractErrorMessageFromJson(jo)
+                    return@withContext Result.failure(Exception(err))
+                } catch (_: Exception) {}
+                return@withContext Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("Auth", "fetchGithubInit error", e)
+            Result.failure(e)
         }
     }
 }
