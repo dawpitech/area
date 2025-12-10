@@ -59,7 +59,7 @@ export function apiSignUp(email, password) {
 }
 
 export function apiGithubInit(token) {
-    return request('/providers/github/auth/init', {
+    return request('/providers/github/auth/init?platform=web', {
         method: 'GET',
     })
 }
