@@ -8,8 +8,6 @@ import (
 	"os"
 )
 
-var AuthStateMap = map[string]uint{}
-
 var Provider = models.Service{
 	Name:    "Github",
 	Icon:    "",

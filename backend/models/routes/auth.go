@@ -12,3 +12,7 @@ type AuthResponse struct {
 type ThirdPartyAuthCheck struct {
 	IsConnected bool `json:"is_connected"`
 }
+
+type ThirdPartyAuthInit struct {
+	Platform string `query:"platform" validate:"required,oneof=web mobile"`
+}

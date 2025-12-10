@@ -15,6 +15,13 @@ import (
 	"strings"
 )
 
+type AuthInitInfo struct {
+	UserID   uint
+	Platform string
+}
+
+var AuthStateMap = map[string]AuthInitInfo{}
+
 func scopeStringFromToken(token *oauth2.Token) (string, bool) {
 	if token == nil {
 		return "", false
@@ -34,7 +41,7 @@ func scopeStringFromToken(token *oauth2.Token) (string, bool) {
 	}
 }
 
-func AuthInit(g *gin.Context) error {
+func AuthInit(g *gin.Context, in *routes.ThirdPartyAuthInit) error {
 	maybeUser, ok := g.Get("user")
 
 	if !ok {
@@ -52,7 +59,10 @@ func AuthInit(g *gin.Context) error {
 		return nil
 	}
 	randomString := hex.EncodeToString(bytes)
-	AuthStateMap[randomString] = user.ID
+	AuthStateMap[randomString] = AuthInitInfo{
+		UserID:   user.ID,
+		Platform: in.Platform,
+	}
 
 	g.IndentedJSON(http.StatusOK, gin.H{
 		"redirect_to": oauthConfig.AuthCodeURL(randomString),
@@ -68,7 +78,7 @@ func AuthCallback(g *gin.Context) error {
 		return nil
 	}
 
-	val, ok := AuthStateMap[reqState]
+	authInfo, ok := AuthStateMap[reqState]
 	if !ok {
 		g.AbortWithStatus(http.StatusBadRequest)
 		return nil
@@ -94,7 +104,7 @@ func AuthCallback(g *gin.Context) error {
 	}
 
 	model := &ProviderGithubAuthData{
-		UserID:      val,
+		UserID:      authInfo.UserID,
 		AccessToken: token.AccessToken,
 		Scope:       scope,
 	}
@@ -103,7 +113,16 @@ func AuthCallback(g *gin.Context) error {
 		g.AbortWithStatus(http.StatusInternalServerError)
 		return nil
 	}
-	g.Redirect(http.StatusTemporaryRedirect, os.Getenv("PROVIDER_OAUTH2_CALLBACK_URL"))
+
+	var redirectUrl string
+	if authInfo.Platform == "web" {
+		redirectUrl = os.Getenv("PROVIDER_OAUTH2_CALLBACK_URL_WEB")
+	} else if authInfo.Platform == "mobile" {
+		redirectUrl = os.Getenv("PROVIDER_OAUTH2_CALLBACK_URI_MOBILE")
+	} else {
+		return errors.BadRequest
+	}
+	g.Redirect(http.StatusTemporaryRedirect, redirectUrl)
 	return nil
 }
 
