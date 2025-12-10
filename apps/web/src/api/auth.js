@@ -63,3 +63,16 @@ export function apiGithubInit(token) {
         method: 'GET',
     })
 }
+
+export function apiGetWorkflows() {
+    return request('/workflows', {
+        method: 'GET',
+    })
+}
+
+export function apiCreateWorkflow(body) {
+    return request('/workflows', {
+        method: 'POST',
+        body: JSON.stringify(body),
+    })
+}

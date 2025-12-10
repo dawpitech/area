@@ -8,3 +8,7 @@ type AuthRequest struct {
 type AuthResponse struct {
 	Token string `json:"token"`
 }
+
+type ThirdPartyAuthCheck struct {
+	IsConnected bool `json:"is_connected"`
+}

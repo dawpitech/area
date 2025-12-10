@@ -21,8 +21,7 @@ type Trigger struct {
 type Authentification struct {
 	HandlerAuthInit     interface{}
 	HandlerAuthCallback interface{}
-	RouteAuthInit       string
-	RouteAuthCallback   string
+	HandlerAuthCheck    interface{}
 }
 
 type Action struct {

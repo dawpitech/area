@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"dawpitech/area/initializers"
+	"dawpitech/area/models/routes"
 	"dawpitech/area/utils"
 	"encoding/hex"
 	"github.com/gin-gonic/gin"
@@ -129,4 +130,29 @@ func AuthCallback(g *gin.Context) error {
 
 	g.Redirect(http.StatusTemporaryRedirect, redirectURI)
 	return nil
+}
+
+func AuthCheck(g *gin.Context) (*routes.ThirdPartyAuthCheck, error) {
+	maybeUser, ok := g.Get("user")
+
+	if !ok {
+		return nil, errors.BadRequest
+	}
+
+	user, ok := utils.MaybeGetUser(maybeUser)
+	if !ok {
+		return nil, errors.BadRequest
+	}
+
+	var count int64
+	if rst := initializers.DB.
+		Model(&ProviderGithubAuthData{}).
+		Where("user_id=?", user.ID).
+		Count(&count); rst.Error != nil {
+		return nil, errors.New("Internal server error")
+	}
+
+	return &routes.ThirdPartyAuthCheck{
+		IsConnected: count >= 1,
+	}, nil
 }
