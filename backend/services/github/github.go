@@ -8,12 +8,7 @@ import (
 	"os"
 )
 
-type AuthStateData struct {
-	UserID      uint
-	RedirectURI string
-}
-
-var AuthStateMap = map[string]AuthStateData{}
+var AuthStateMap = map[string]uint{}
 
 var Provider = models.Service{
 	Name:    "Github",
