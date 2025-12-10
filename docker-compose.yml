@@ -39,11 +39,12 @@ services:
       - 8080:8080
     environment:
       DB_URI: "host=db user=shinji password=evangelion dbname=area port=5432 sslmode=disable"
-      PUBLIC_URL: "http://192.168.1.20:8080"
+      PUBLIC_URL: "http://100.78.22.73:8080"
       JWT_TOKENS_SECRET: ${JWT_TOKENS_SECRET}
       GITHUB_OAUTH2_CLIENT_ID: ${GITHUB_OAUTH2_CLIENT_ID}
       GITHUB_OAUTH2_CLIENT_SECRET: ${GITHUB_OAUTH2_CLIENT_SECRET}
-      PROVIDER_OAUTH2_CALLBACK_URL: "http://192.168.1.20:8080/providers/github/auth/callback?app_redirect=area://home"
+      PROVIDER_OAUTH2_CALLBACK_URL_WEB: "http://localhost:3000/home"
+      PROVIDER_OAUTH2_CALLBACK_URI_MOBILE: "area://home"
 
   swagger:
     image: swaggerapi/swagger-ui
