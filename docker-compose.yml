@@ -62,7 +62,7 @@ services:
       - server
       - client_mobile
     volumes:
-      - apk_data:/static
+      - apk_data:/apk
     restart: unless-stopped
     ports:
       - 8081:3000

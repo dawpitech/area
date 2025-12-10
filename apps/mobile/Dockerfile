@@ -22,4 +22,4 @@ COPY . .
 
 RUN ./gradlew assembleRelease --no-daemon
 
-CMD ["cp", "app/build/outputs/apk/debug/app-debug.apk", "/output/app-debug.apk"]
+CMD ["sh", "-c", "cp app/build/outputs/apk/debug/app-debug.apk /output/client.apk && echo APK copied to /output/client.apk"]
