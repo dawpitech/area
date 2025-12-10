@@ -5,9 +5,11 @@ import (
 	"dawpitech/area/models"
 	"dawpitech/area/services/github"
 	"dawpitech/area/services/timer"
+	"fmt"
 	"github.com/loopfz/gadgeto/tonic"
 	"github.com/wI2L/fizz"
 	"github.com/wI2L/fizz/openapi"
+	"strings"
 )
 
 var Services = []models.Service{
@@ -33,9 +35,13 @@ func Init() {
 func RegisterServiceRoutes(router *fizz.Fizz) {
 	for i := 0; i < len(Services); i++ {
 		service := Services[i]
+		routeBase := fmt.Sprintf("/providers/%s/auth", strings.ToLower(service.Name))
+		routeAuthInit := routeBase + "/init"
+		routeAuthCallback := routeBase + "/callback"
+		routeAuthCheck := routeBase + "/check"
 		if service.AuthMethod != nil {
 			router.GET(
-				service.AuthMethod.RouteAuthInit,
+				routeAuthInit,
 				[]fizz.OperationOption{
 					fizz.Security(&openapi.SecurityRequirement{
 						"bearerAuth": []string{},
@@ -45,9 +51,19 @@ func RegisterServiceRoutes(router *fizz.Fizz) {
 				tonic.Handler(service.AuthMethod.HandlerAuthInit, 200),
 			)
 			router.GET(
-				service.AuthMethod.RouteAuthCallback,
+				routeAuthCallback,
 				[]fizz.OperationOption{},
 				tonic.Handler(service.AuthMethod.HandlerAuthCallback, 200),
+			)
+			router.GET(
+				routeAuthCheck,
+				[]fizz.OperationOption{
+					fizz.Security(&openapi.SecurityRequirement{
+						"bearerAuth": []string{},
+					}),
+				},
+				middlewares.CheckAuth,
+				tonic.Handler(service.AuthMethod.HandlerAuthCheck, 200),
 			)
 		}
 	}
