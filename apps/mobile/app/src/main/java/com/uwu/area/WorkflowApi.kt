@@ -35,9 +35,14 @@ suspend fun fetchWorkflows(token: String? = null): Result<List<Workflow>> {
                 for (i in 0 until arr.length()) {
                     try {
                         val jo = arr.getJSONObject(i)
+                        val actionParams = jsonArrayToList(jo.optJSONArray("ActionParameters"))
+                        val reactionParams = jsonArrayToList(jo.optJSONArray("ReactionParameters"))
                         val wp = Workflow(
                             jo.optInt("ID"),
-                            jo.optString("ActionName", "")
+                            jo.optString("ActionName", ""),
+                            actionParams,
+                            jo.optString("ReactionName", ""),
+                            reactionParams
                         )
                         list.add(wp)
                     } catch (_: Exception) { }
@@ -119,9 +124,12 @@ suspend fun deleteWorkflowApi(token: String? = null, id: Int?): Result<Unit> {
                 readTimeout = 5000
             }
             val code = conn.responseCode
+            Log.d("WorkflowApi", "DELETE ${ApiRoutes.WORKFLOWS}/$id -> code=$code")
+
             if (code in 200..299) Result.success(Unit)
             else {
                 val resp = conn.errorStream?.let { BufferedReader(InputStreamReader(it)).use { r -> r.readText() } } ?: "Delete failed"
+                Log.d("WorkflowApi", "DELETE ${ApiRoutes.WORKFLOWS}/$id failed: $resp")
                 Result.failure(Exception(resp))
             }
         } catch (e: Exception) {
@@ -167,6 +175,8 @@ suspend fun updateWorkflowApi(
             else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
 
             val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "PUT ${ApiRoutes.WORKFLOWS}/$id -> code=$code body=$body resp=$respText")
+
             if (code in 200..299) {
                 val jo = JSONObject(respText)
                 val wf = Workflow(

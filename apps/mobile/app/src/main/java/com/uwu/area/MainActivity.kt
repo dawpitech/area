@@ -184,20 +184,35 @@ fun AppContent() {
                         }
 
                         Screen.WORKFLOWS -> {
-                            if (showCreate) {
-                                CreateWorkflowScreen(
-                                    token = token,
-                                    onClose = { showCreate = false },
-                                    onSaved = { _ ->
-                                        // Close the form once the workflow has been successfully created (HTTP 2xx)
-                                        showCreate = false
-                                    }
-                                )
-                            } else {
-                                WorkflowListScreen(
-                                    token = token,
-                                    onOpenCreate = { showCreate = true }
-                                )
+                            when {
+                                editWorkflow != null -> {
+                                    EditWorkflowScreen(
+                                        token = token,
+                                        workflow = editWorkflow!!,
+                                        onClose = { editWorkflow = null },
+                                        onSaved = { updatedWorkflow ->
+                                            // Close the edit form once the workflow has been successfully updated
+                                            editWorkflow = null
+                                        }
+                                    )
+                                }
+                                showCreate -> {
+                                    CreateWorkflowScreen(
+                                        token = token,
+                                        onClose = { showCreate = false },
+                                        onSaved = { _ ->
+                                            // Close the form once the workflow has been successfully created (HTTP 2xx)
+                                            showCreate = false
+                                        }
+                                    )
+                                }
+                                else -> {
+                                    WorkflowListScreen(
+                                        token = token,
+                                        onOpenCreate = { showCreate = true },
+                                        onEdit = { workflow -> editWorkflow = workflow }
+                                    )
+                                }
                             }
                         }
                     }

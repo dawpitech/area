@@ -1,5 +1,6 @@
 package com.uwu.area
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -64,11 +65,17 @@ fun WorkflowListScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                     items(workflows) { wf ->
-                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp)
+                                .clickable { wf.ID?.let { onEdit(wf) } }
+                        ) {
                             Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(text = wf.ActionName, style = MaterialTheme.typography.titleMedium)
                                     Text(text = "ID: ${wf.ID}", style = MaterialTheme.typography.bodySmall)
+                                    Text(text = "→ ${wf.ReactionName}", style = MaterialTheme.typography.bodySmall)
                                 }
                                 IconButton(onClick = {
                                     val id: Int? = wf.ID
@@ -228,6 +235,156 @@ fun CreateWorkflowScreen(
                         }
                     }) {
                         Text("Create workflow")
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    OutlinedButton(onClick = onClose) {
+                        Text("Cancel")
+                    }
+                }
+
+                if (error != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(text = error!!, color = Color(0xFFFF3333))
+                }
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditWorkflowScreen(
+    token: String?,
+    workflow: Workflow,
+    onClose: () -> Unit,
+    onSaved: (Workflow) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var actionName by remember { mutableStateOf(workflow.ActionName) }
+    var reactionName by remember { mutableStateOf(workflow.ReactionName) }
+
+    val actionParams = remember { mutableStateListOf<String>().apply { addAll(workflow.ActionParameters) } }
+    val reactionParams = remember { mutableStateListOf<String>().apply { addAll(workflow.ReactionParameters) } }
+
+    var loading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Edit Workflow") },
+                navigationIcon = {
+                    IconButton(onClick = onClose) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                },
+                actions = {
+                    TextButton(onClick = {
+                        if (loading) return@TextButton
+                        loading = true
+                        error = null
+                        scope.launch {
+                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() })
+                            loading = false
+                            res.fold(onSuccess = { wf -> onSaved(wf) }, onFailure = { e -> error = e.message ?: "Save failed" })
+                        }
+                    }) {
+                        if (loading) CircularProgressIndicator(modifier = Modifier.size(18.dp)) else Text("Save")
+                    }
+                }
+            )
+        },
+        content = { innerPadding ->
+            Column(modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)) {
+
+                // Trigger card
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Trigger Details", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = actionName,
+                            onValueChange = { actionName = it },
+                            label = { Text("Action name") },
+                            placeholder = { Text("Ex: timer_cron_job") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Action parameters", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        for ((index, param) in actionParams.withIndex()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                OutlinedTextField(
+                                    value = param,
+                                    onValueChange = { v -> actionParams[index] = v },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    placeholder = { Text("Ex: * * * * *") },
+                                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
+                                )
+                                IconButton(onClick = { actionParams.removeAt(index) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Remove")
+                                }
+                            }
+                        }
+                        TextButton(onClick = { actionParams.add("") }) { Text("Add parameter") }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Reaction Details", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = reactionName,
+                            onValueChange = { reactionName = it },
+                            label = { Text("Reaction name") },
+                            placeholder = { Text("Ex: github_create_issue") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Reaction parameters", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        for ((index, param) in reactionParams.withIndex()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                OutlinedTextField(
+                                    value = param,
+                                    onValueChange = { v -> reactionParams[index] = v },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    placeholder = { Text("Ex: dawpitech/test-thingy") },
+                                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
+                                )
+                                IconButton(onClick = { reactionParams.removeAt(index) }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Remove")
+                                }
+                            }
+                        }
+                        TextButton(onClick = { reactionParams.add("") }) { Text("Add parameter") }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+                Row {
+                    Button(onClick = {
+                        if (loading) return@Button
+                        loading = true
+                        error = null
+                        scope.launch {
+                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() })
+                            loading = false
+                            res.fold(onSuccess = { wf -> onSaved(wf) }, onFailure = { e -> error = e.message ?: "Save failed" })
+                        }
+                    }) {
+                        Text("Update workflow")
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     OutlinedButton(onClick = onClose) {
