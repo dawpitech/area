@@ -3,10 +3,12 @@ package timer
 import (
 	"dawpitech/area/models"
 	"github.com/go-co-op/gocron/v2"
+	"github.com/google/uuid"
 	"log"
 )
 
 var scheduler gocron.Scheduler
+var workflowJobUUID = make(map[uint]uuid.UUID)
 
 func init() {
 	var err error
@@ -27,7 +29,8 @@ var Provider = models.Service{
 			Parameters: []string{
 				"cron",
 			},
-			SetupTrigger: TriggerLaunchNewCronJob,
+			SetupTrigger:  TriggerLaunchNewCronJob,
+			RemoveTrigger: RemoveLaunchNewCronJob,
 		},
 		{
 			Name:        "timer_precise_run",

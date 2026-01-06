@@ -2,11 +2,13 @@ package models
 
 type HandlerContext struct {
 	OwnerUserID        uint
+	WorkflowID         uint
 	ReactionParameters []string
 }
 
 type TriggerContext struct {
 	OwnerUserID      uint
+	WorkflowID       uint
 	ActionParameters []string
 	ReactionContext  HandlerContext
 	ReactionHandler  HandlerCallback
@@ -25,11 +27,12 @@ type Authentification struct {
 }
 
 type Action struct {
-	Name         string
-	PrettyName   string
-	Description  string
-	Parameters   []string
-	SetupTrigger TriggerSetup
+	Name          string
+	PrettyName    string
+	Description   string
+	Parameters    []string
+	SetupTrigger  TriggerSetup
+	RemoveTrigger TriggerSetup
 }
 
 type Reaction struct {

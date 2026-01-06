@@ -9,4 +9,5 @@ type Workflow struct {
 	ActionParameters   []string `gorm:"serializer:json"`
 	ReactionName       string
 	ReactionParameters []string `gorm:"serializer:json"`
+	Active             bool
 }

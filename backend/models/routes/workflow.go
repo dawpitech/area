@@ -1,8 +1,14 @@
 package routes
 
-type CreateNewWorkflowRequest struct {
+type WorkflowID struct {
+	WorkflowID uint `path:"id"`
+}
+
+type EditWorkflowRequest struct {
+	WorkflowID         uint `path:"id"`
 	ActionName         string
 	ActionParameters   []string
 	ReactionName       string
 	ReactionParameters []string
+	Active             bool
 }

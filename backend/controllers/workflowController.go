@@ -19,7 +19,15 @@ func GetAllWorkflows(_ *gin.Context) (*[]models.Workflow, error) {
 	return &workflows, nil
 }
 
-func CreateNewWorkflow(c *gin.Context, in *routes.CreateNewWorkflowRequest) (*models.Workflow, error) {
+func GetWorkflow(_ *gin.Context, in *routes.WorkflowID) (*models.Workflow, error) {
+	var workflow models.Workflow
+	if rst := initializers.DB.First(&workflow).Where("id=?", in.WorkflowID); rst.Error != nil {
+		return nil, errors.NotFound
+	}
+	return &workflow, nil
+}
+
+func CreateNewWorkflow(c *gin.Context) (*models.Workflow, error) {
 	maybeUser, ok := c.Get("user")
 	if !ok {
 		return nil, errors.BadRequest
@@ -32,18 +40,61 @@ func CreateNewWorkflow(c *gin.Context, in *routes.CreateNewWorkflowRequest) (*mo
 
 	workflow := models.Workflow{
 		OwnerUserID:        user.ID,
-		ActionName:         in.ActionName,
-		ActionParameters:   in.ActionParameters,
-		ReactionName:       in.ReactionName,
-		ReactionParameters: in.ReactionParameters,
+		ActionName:         "",
+		ActionParameters:   nil,
+		ReactionName:       "",
+		ReactionParameters: nil,
+		Active:             false,
 	}
 	if rst := initializers.DB.Create(&workflow); rst.Error != nil {
 		return nil, errors.New("Internal server error")
 	}
-	if err, ok := engine.RegisterNewWorkflow(workflow); !ok {
-		log.Print(err.Error())
-		initializers.DB.Delete(&workflow)
-		return nil, err
+	return &workflow, nil
+}
+
+func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*models.Workflow, error) {
+	maybeUser, ok := c.Get("user")
+	if !ok {
+		return nil, errors.BadRequest
 	}
+
+	user, ok := utils.MaybeGetUser(maybeUser)
+	if !ok {
+		return nil, errors.BadRequest
+	}
+
+	var workflow models.Workflow
+	if rst := initializers.DB.First(&workflow).Where("id=?", in.WorkflowID); rst.Error != nil {
+		return nil, errors.New("No workflow found with the given ID.")
+	}
+
+	if workflow.OwnerUserID != user.ID {
+		return nil, errors.Unauthorized
+	}
+
+	if workflow.Active {
+		if err, ok := engine.DisableWorkflowTrigger(workflow); !ok {
+			log.Print(err.Error())
+			return nil, err
+		}
+	}
+
+	workflow.ActionName = in.ActionName
+	workflow.ActionParameters = in.ActionParameters
+	workflow.ReactionName = in.ReactionName
+	workflow.ReactionParameters = in.ReactionParameters
+	workflow.Active = in.Active
+
+	if rst := initializers.DB.Save(&workflow); rst.Error != nil {
+		return nil, errors.New("Internal server error")
+	}
+	if in.Active {
+		if err, ok := engine.SetupWorkflowTrigger(workflow); !ok {
+			log.Print(err.Error())
+			//initializers.DB.Delete(&workflow)
+			return nil, err
+		}
+	}
+
 	return &workflow, nil
 }

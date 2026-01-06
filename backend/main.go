@@ -20,7 +20,7 @@ func init() {
 	initializers.LoadEnvironment()
 	initializers.ConnectDB()
 	services.Init()
-	engine.RegisterExistingWorkflows()
+	engine.ReloadWorkflowTrigger()
 }
 
 func main() {
@@ -66,14 +66,14 @@ func main() {
 	)
 
 	fizzRouter.GET(
-		"/workflows",
+		"/workflow",
 		[]fizz.OperationOption{
 			fizz.Summary("Retrieve all workflows"),
 		},
 		tonic.Handler(controllers.GetAllWorkflows, 200),
 	)
 	fizzRouter.POST(
-		"/workflows",
+		"/workflow",
 		[]fizz.OperationOption{
 			fizz.Summary("Create a new workflow"),
 			fizz.Security(&openapi.SecurityRequirement{
@@ -82,6 +82,24 @@ func main() {
 		},
 		middlewares.CheckAuth,
 		tonic.Handler(controllers.CreateNewWorkflow, 200),
+	)
+	fizzRouter.GET(
+		"/workflow/:id",
+		[]fizz.OperationOption{
+			fizz.Summary("Retrieve a workflow"),
+		},
+		tonic.Handler(controllers.GetWorkflow, 200),
+	)
+	fizzRouter.PATCH(
+		"/workflows/:id",
+		[]fizz.OperationOption{
+			fizz.Summary("Edit a workflow"),
+			fizz.Security(&openapi.SecurityRequirement{
+				"bearerAuth": []string{},
+			}),
+		},
+		middlewares.CheckAuth,
+		tonic.Handler(controllers.EditWorkflow, 200),
 	)
 
 	fizzRouter.Generator().SetSecuritySchemes(map[string]*openapi.SecuritySchemeOrRef{
