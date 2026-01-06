@@ -34,6 +34,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import androidx.core.net.toUri
 import java.net.URLEncoder
+import kotlin.apply
 import kotlin.io.inputStream
 
 private const val ERROR_DISPLAY_MAX = 200
@@ -154,20 +155,24 @@ suspend fun signin(email: String, password: String): Result<String> {
     return postJson(ApiRoutes.SIGNIN, json)
 }
 
+
 @Composable
 fun AuthHost(onAuthenticated: (token: String, email: String) -> Unit) {
     val context = LocalContext.current
-    val tokenStore = remember { TokenStore(context) }
+    // Initialiser le singleton TokenStore une seule fois avec le contexte
+    LaunchedEffect(Unit) { TokenStore.init(context) }
+    val tokenStore = TokenStore
+
     val prefs = remember {
         context.getSharedPreferences("area_prefs", MODE_PRIVATE)
     }
     val scope = rememberCoroutineScope()
-    
+
     var mode by remember { mutableStateOf("signin") }
 
-    val onAuthSuccess = { token: String, email: String ->
+    val onAuthSuccess: (String, String) -> Unit = { token, email ->
         scope.launch {
-            tokenStore.saveToken(token)
+            tokenStore.setToken(token) // ou saveToken selon l'API réelle
             withContext(Dispatchers.IO) {
                 prefs.edit().putString("auth_email", email).apply()
             }
@@ -218,12 +223,22 @@ fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String, email
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(text = "Sign In", color = MaterialTheme.colorScheme.onBackground)
-            OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
+            Text(text = "Sign In", color = Color.White)
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email", color = Color.White) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password", color = Color.White) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
                 if (loading) return@Button
@@ -245,7 +260,9 @@ fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String, email
             }) {
                 Text(text = if (loading) "Signing in..." else "Sign In")
             }
-            TextButton(onClick = onSwitchToSignUp) { Text("Create account") }
+            TextButton(onClick = onSwitchToSignUp) {
+                Text("Create account", color = Color.White)
+            }
         }
 
         if (error != null) {
@@ -262,12 +279,22 @@ fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String, email
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(text = "Sign Up", color = MaterialTheme.colorScheme.onBackground)
-            OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
+            Text(text = "Sign Up", color = Color.White)
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email", color = Color.White) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            )
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password", color = Color.White) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = {
                 if (loading) return@Button
@@ -304,7 +331,9 @@ fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String, email
             }) {
                 Text(text = if (loading) "Signing up..." else "Sign Up")
             }
-            TextButton(onClick = onSwitchToSignIn) { Text("Already have an account? Sign in") }
+            TextButton(onClick = onSwitchToSignIn) {
+                Text("Already have an account? Sign in", color = Color.White)
+            }
         }
 
         if (error != null) {

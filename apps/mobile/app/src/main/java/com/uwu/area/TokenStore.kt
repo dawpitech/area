@@ -1,37 +1,61 @@
 package com.uwu.area
 
 import android.content.Context
+import android.content.SharedPreferences
+import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import androidx.security.crypto.MasterKey
 
-class TokenStore(private val context: Context) {
-    private val prefsName = "secure_prefs"
-    private val keyToken = "auth_token"
+object TokenStore {
+    private const val PREFS_NAME = "com.uwu.area.prefs"
+    private const val TOKEN_KEY = "token"
 
-    private val prefs by lazy {
-        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        EncryptedSharedPreferences.create(
-            prefsName,
-            masterKeyAlias,
-            context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+    private lateinit var appContext: Context
+    private val prefs: SharedPreferences by lazy { createPrefs(appContext) }
+
+    fun init(context: Context) {
+        appContext = context.applicationContext
     }
 
-    suspend fun saveToken(token: String) {
-        withContext(Dispatchers.IO) {
-            prefs.edit().putString(keyToken, token).apply()
+    fun getToken(): String? {
+        return try {
+            prefs.getString(TOKEN_KEY, null)
+        } catch (e: Exception) {
+            Log.w("TokenStore", "getToken failed", e)
+            null
         }
     }
 
-    fun getToken(): String? = prefs.getString(keyToken, null)
+    fun setToken(token: String?) {
+        try {
+            prefs.edit().apply {
+                if (token == null) remove(TOKEN_KEY) else putString(TOKEN_KEY, token)
+            }.apply()
+        } catch (e: Exception) {
+            Log.w("TokenStore", "setToken failed", e)
+        }
+    }
 
-    suspend fun clearToken() {
-        withContext(Dispatchers.IO) {
-            prefs.edit().remove(keyToken).apply()
+    fun clearToken() {
+        setToken(null)
+    }
+
+    private fun createPrefs(context: Context): SharedPreferences {
+        return try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            EncryptedSharedPreferences.create(
+                context,
+                PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            Log.w("TokenStore", "EncryptedSharedPreferences unavailable, falling back to plain SharedPreferences", e)
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         }
     }
 }

@@ -33,14 +33,7 @@ fun NavigationBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (email != null) {
-                Text(
-                    text = "Logged in as: $email",
-                    fontSize = 12.sp,
-                    color = Color.White
-                )
-            }
-
+            // Place the menu button on the left so it visually matches the left-side drawer
             IconButton(
                 onClick = onMenuClick
             ) {
@@ -48,6 +41,14 @@ fun NavigationBar(
                     imageVector = Icons.Default.Menu,
                     contentDescription = "Menu",
                     tint = Color.White
+                )
+            }
+
+            if (email != null) {
+                Text(
+                    text = "Logged in as: $email",
+                    fontSize = 12.sp,
+                    color = Color.White
                 )
             }
         }

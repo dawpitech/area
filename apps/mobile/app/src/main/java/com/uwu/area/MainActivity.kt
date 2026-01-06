@@ -22,7 +22,7 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Removed enableEdgeToEdge() to prevent content from being cut off on smaller screens
         setContent {
             AreaTheme {
                 AppContent()
@@ -34,15 +34,21 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppContent() {
     val context = LocalContext.current
-    val tokenStore = remember { TokenStore(context) }
+
+    // Initialiser le singleton TokenStore une seule fois avec le contexte
+    LaunchedEffect(Unit) { TokenStore.init(context) }
+    val tokenStore = TokenStore
+
     val prefs = remember {
         context.getSharedPreferences("area_prefs", MODE_PRIVATE)
     }
-    
+
     var token by remember { mutableStateOf<String?>(null) }
     var email by remember { mutableStateOf<String?>(null) }
     var currentScreen by remember { mutableStateOf(Screen.HOME) }
     var isInitialized by remember { mutableStateOf(false) }
+    var showCreate by remember { mutableStateOf(false) }
+    var editWorkflow by remember { mutableStateOf<Workflow?>(null) }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
@@ -54,9 +60,7 @@ fun AppContent() {
         isInitialized = true
     }
 
-    if (!isInitialized) {
-        return
-    }
+    if (!isInitialized) return
 
     val onSignOut: () -> Unit = {
         scope.launch {
@@ -70,88 +74,94 @@ fun AppContent() {
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet(
-                modifier = Modifier.width(280.dp),
-                drawerContainerColor = Color(0xFFF5F5F5)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(16.dp)
+    if (token == null) {
+        // No drawer or top navigation while on the auth screens
+        AuthHost(onAuthenticated = { receivedToken, receivedEmail ->
+            token = receivedToken
+            email = receivedEmail
+        })
+    } else {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(
+                    modifier = Modifier.width(280.dp),
+                    drawerContainerColor = Color(0xFFF5F5F5)
                 ) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    NavigationDrawerItem(
-                        label = {
-                            Text(
-                                text = "Home",
-                                fontWeight = if (currentScreen == Screen.HOME) FontWeight.Bold else FontWeight.Normal,
-                                color = Color(0xFF1F2937)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(16.dp)
+                    ) {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        NavigationDrawerItem(
+                            label = {
+                                Text(
+                                    text = "Home",
+                                    fontWeight = if (currentScreen == Screen.HOME) FontWeight.Bold else FontWeight.Normal,
+                                    color = Color(0xFF1F2937)
+                                )
+                            },
+                            selected = currentScreen == Screen.HOME,
+                            onClick = {
+                                currentScreen = Screen.HOME
+                                scope.launch { drawerState.close() }
+                            },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = Color(0xFFE5E7EB),
+                                unselectedContainerColor = Color.Transparent
                             )
-                        },
-                        selected = currentScreen == Screen.HOME,
-                        onClick = {
-                            currentScreen = Screen.HOME
-                            scope.launch { drawerState.close() }
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = Color(0xFFE5E7EB),
-                            unselectedContainerColor = Color.Transparent
                         )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    NavigationDrawerItem(
-                        label = {
-                            Text(
-                                text = "Workflows",
-                                fontWeight = if (currentScreen == Screen.WORKFLOWS) FontWeight.Bold else FontWeight.Normal,
-                                color = Color(0xFF1F2937)
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        NavigationDrawerItem(
+                            label = {
+                                Text(
+                                    text = "Workflows",
+                                    fontWeight = if (currentScreen == Screen.WORKFLOWS) FontWeight.Bold else FontWeight.Normal,
+                                    color = Color(0xFF1F2937)
+                                )
+                            },
+                            selected = currentScreen == Screen.WORKFLOWS,
+                            onClick = {
+                                currentScreen = Screen.WORKFLOWS
+                                scope.launch { drawerState.close() }
+                            },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = Color(0xFFE5E7EB),
+                                unselectedContainerColor = Color.Transparent
                             )
-                        },
-                        selected = currentScreen == Screen.WORKFLOWS,
-                        onClick = {
-                            currentScreen = Screen.WORKFLOWS
-                            scope.launch { drawerState.close() }
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = Color(0xFFE5E7EB),
-                            unselectedContainerColor = Color.Transparent
                         )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    NavigationDrawerItem(
-                        label = {
-                            Text(
-                                text = "Log out",
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFFDC2626)
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        NavigationDrawerItem(
+                            label = {
+                                Text(
+                                    text = "Log out",
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFFDC2626)
+                                )
+                            },
+                            selected = false,
+                            onClick = {
+                                onSignOut()
+                                scope.launch { drawerState.close() }
+                            },
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = Color.Transparent,
+                                unselectedContainerColor = Color.Transparent
                             )
-                        },
-                        selected = false,
-                        onClick = {
-                            onSignOut()
-                            scope.launch { drawerState.close() }
-                        },
-                        colors = NavigationDrawerItemDefaults.colors(
-                            selectedContainerColor = Color.Transparent,
-                            unselectedContainerColor = Color.Transparent
                         )
-                    )
+                    }
                 }
             }
-        }
-    ) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            topBar = {
-                if (token != null) {
+        ) {
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                topBar = {
                     NavigationBar(
                         currentScreen = currentScreen,
                         email = email,
@@ -162,15 +172,8 @@ fun AppContent() {
                         }
                     )
                 }
-            }
-        ) { innerPadding ->
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                if (token == null) {
-                    AuthHost(onAuthenticated = { receivedToken, receivedEmail ->
-                        token = receivedToken
-                        email = receivedEmail
-                    })
-                } else {
+            ) { innerPadding ->
+                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                     when (currentScreen) {
                         Screen.HOME -> {
                             HomeScreen(
@@ -179,8 +182,23 @@ fun AppContent() {
                                 onSignOut = onSignOut
                             )
                         }
+
                         Screen.WORKFLOWS -> {
-                            WorkflowsScreen()
+                            if (showCreate) {
+                                CreateWorkflowScreen(
+                                    token = token,
+                                    onClose = { showCreate = false },
+                                    onSaved = { _ ->
+                                        // Close the form once the workflow has been successfully created (HTTP 2xx)
+                                        showCreate = false
+                                    }
+                                )
+                            } else {
+                                WorkflowListScreen(
+                                    token = token,
+                                    onOpenCreate = { showCreate = true }
+                                )
+                            }
                         }
                     }
                 }
