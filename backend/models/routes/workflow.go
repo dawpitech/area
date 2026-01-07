@@ -4,6 +4,22 @@ type WorkflowID struct {
 	WorkflowID uint `path:"id"`
 }
 
+type GetAllWorkflowResponse struct {
+	WorkflowID uint
+	Name       string
+	Active     bool
+}
+
+type GetWorkflowResponse struct {
+	WorkflowID         uint
+	Name               string
+	ActionName         string
+	ActionParameters   map[string]string `gorm:"serializer:json"`
+	ReactionName       string
+	ReactionParameters map[string]string `gorm:"serializer:json"`
+	Active             bool
+}
+
 type EditWorkflowRequest struct {
 	WorkflowID         uint `path:"id"`
 	ActionName         string

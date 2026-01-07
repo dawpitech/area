@@ -4,6 +4,7 @@ import "gorm.io/gorm"
 
 type Workflow struct {
 	gorm.Model
+	Name               string
 	OwnerUserID        uint
 	ActionName         string
 	ActionParameters   map[string]string `gorm:"serializer:json"`
