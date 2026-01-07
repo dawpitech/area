@@ -35,14 +35,15 @@ suspend fun fetchWorkflows(token: String? = null): Result<List<Workflow>> {
                 for (i in 0 until arr.length()) {
                     try {
                         val jo = arr.getJSONObject(i)
-                        val actionParams = jsonArrayToList(jo.optJSONArray("ActionParameters"))
-                        val reactionParams = jsonArrayToList(jo.optJSONArray("ReactionParameters"))
+                        val actionParams = jsonObjectToList(jo.optJSONObject("ActionParameters"))
+                        val reactionParams = jsonObjectToList(jo.optJSONObject("ReactionParameters"))
                         val wp = Workflow(
                             jo.optInt("ID"),
                             jo.optString("ActionName", ""),
                             actionParams,
                             jo.optString("ReactionName", ""),
-                            reactionParams
+                            reactionParams,
+                            jo.optBoolean("Active", true)
                         )
                         list.add(wp)
                     } catch (_: Exception) { }
@@ -67,8 +68,8 @@ suspend fun createWorkflowApi(
 ): Result<Workflow> {
     return withContext(Dispatchers.IO) {
         try {
-            val url = URL(ApiRoutes.BASE + ApiRoutes.WORKFLOWS)
-            val conn = (url.openConnection() as HttpURLConnection).apply {
+            val createUrl = URL(ApiRoutes.BASE + ApiRoutes.WORKFLOWS)
+            val createConn = (createUrl.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 if (!token.isNullOrBlank()) setRequestProperty("Authorization", "Bearer $token")
@@ -77,35 +78,44 @@ suspend fun createWorkflowApi(
                 readTimeout = 5000
             }
 
-            val body = JSONObject().apply {
-                put("ActionName", actionName)
-                put("ActionParameters", JSONArray(actionParams))
-                put("ReactionName", reactionName)
-                put("ReactionParameters", JSONArray(reactionParams))
-            }.toString()
+            val createBody = JSONObject().toString()
 
-            conn.outputStream.use { os: OutputStream ->
-                os.write(body.toByteArray(Charsets.UTF_8))
+            createConn.outputStream.use { os: OutputStream ->
+                os.write(createBody.toByteArray(Charsets.UTF_8))
                 os.flush()
             }
 
-            val code = conn.responseCode
-            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
-            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+            val createCode = createConn.responseCode
+            val createReader = if (createCode in 200..299) BufferedReader(InputStreamReader(createConn.inputStream))
+            else BufferedReader(InputStreamReader(createConn.errorStream ?: createConn.inputStream))
 
-            val respText = reader.use { it.readText() }
-            Log.d("WorkflowApi", "POST ${ApiRoutes.WORKFLOWS} -> code=$code resp=$respText")
+            val createRespText = createReader.use { it.readText() }
+            Log.d("WorkflowApi", "POST ${ApiRoutes.WORKFLOWS} -> code=$createCode resp=$createRespText")
 
-            if (code in 200..299) {
-                val jo = JSONObject(respText)
-                val wf = Workflow(
-                    jo.optInt("ID"),
-                    jo.optString("ActionName", actionName)
-                )
-                Result.success(wf)
-            } else {
-                Result.failure(Exception(respText))
+            if (createCode !in 200..299) {
+                return@withContext Result.failure(Exception(createRespText))
             }
+
+            val createJo = JSONObject(createRespText)
+            val workflowId = createJo.optInt("ID", -1)
+            if (workflowId == -1) {
+                return@withContext Result.failure(Exception("Failed to get workflow ID from create response"))
+            }
+
+            val checkResult = checkWorkflowApi(actionName, actionParams, reactionName, reactionParams)
+            if (checkResult.isFailure) {
+                return@withContext Result.failure(checkResult.exceptionOrNull() ?: Exception("Workflow check failed"))
+            }
+
+            val updateResult = updateWorkflowApi(token, workflowId, actionName, actionParams, reactionName, reactionParams, true)
+            updateResult.fold(
+                onSuccess = { updatedWorkflow ->
+                    Result.success(updatedWorkflow)
+                },
+                onFailure = { error ->
+                    Result.failure(error)
+                }
+            )
         } catch (e: Exception) {
             Log.e("WorkflowApi", "createWorkflowApi error", e)
             Result.failure(e)
@@ -116,22 +126,32 @@ suspend fun createWorkflowApi(
 suspend fun deleteWorkflowApi(token: String? = null, id: Int?): Result<Unit> {
     return withContext(Dispatchers.IO) {
         try {
-            val url = URL(ApiRoutes.BASE + ApiRoutes.WORKFLOWS + "/$id")
+            if (id == null) {
+                return@withContext Result.failure(Exception("Workflow ID is null"))
+            }
+            Log.d("WorkflowApi", "DELETE attempt: token=${token?.take(10)}..., id=$id")
+            val url = URL(ApiRoutes.BASE + ApiRoutes.WORKFLOWS + "$id")
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "DELETE"
-                if (!token.isNullOrBlank()) setRequestProperty("Authorization", "Bearer $token")
+                if (!token.isNullOrBlank()) {
+                    val authHeader = "Bearer $token"
+                    setRequestProperty("Authorization", authHeader)
+                    Log.d("WorkflowApi", "DELETE setting Authorization: ${authHeader.take(20)}...")
+                } else {
+                    Log.d("WorkflowApi", "DELETE no token provided")
+                }
                 connectTimeout = 5000
                 readTimeout = 5000
             }
             val code = conn.responseCode
-            Log.d("WorkflowApi", "DELETE ${ApiRoutes.WORKFLOWS}/$id -> code=$code")
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "DELETE ${ApiRoutes.WORKFLOWS}$id -> code=$code resp=$respText")
 
             if (code in 200..299) Result.success(Unit)
-            else {
-                val resp = conn.errorStream?.let { BufferedReader(InputStreamReader(it)).use { r -> r.readText() } } ?: "Delete failed"
-                Log.d("WorkflowApi", "DELETE ${ApiRoutes.WORKFLOWS}/$id failed: $resp")
-                Result.failure(Exception(resp))
-            }
+            else Result.failure(Exception(respText.ifBlank { "Delete failed" }))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -144,13 +164,19 @@ suspend fun updateWorkflowApi(
     actionName: String,
     actionParams: List<String>,
     reactionName: String,
-    reactionParams: List<String>
+    reactionParams: List<String>,
+    active: Boolean = true
 ): Result<Workflow> {
     return withContext(Dispatchers.IO) {
         try {
-            val url = URL(ApiRoutes.BASE + ApiRoutes.WORKFLOWS + "/$id")
+            val checkResult = checkWorkflowApi(actionName, actionParams, reactionName, reactionParams)
+            if (checkResult.isFailure) {
+                return@withContext Result.failure(checkResult.exceptionOrNull() ?: Exception("Workflow check failed"))
+            }
+
+            val url = URL(ApiRoutes.BASE + ApiRoutes.WORKFLOWS + "$id")
             val conn = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "PUT"
+                requestMethod = "PATCH"
                 setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 if (!token.isNullOrBlank()) setRequestProperty("Authorization", "Bearer $token")
                 doOutput = true
@@ -160,9 +186,10 @@ suspend fun updateWorkflowApi(
 
             val body = JSONObject().apply {
                 put("ActionName", actionName)
-                put("ActionParameters", JSONArray(actionParams))
+                put("ActionParameters", listToJSONObject(actionParams))
                 put("ReactionName", reactionName)
-                put("ReactionParameters", JSONArray(reactionParams))
+                put("ReactionParameters", listToJSONObject(reactionParams))
+                put("Active", active)
             }.toString()
 
             conn.outputStream.use { os: OutputStream ->
@@ -175,13 +202,19 @@ suspend fun updateWorkflowApi(
             else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
 
             val respText = reader.use { it.readText() }
-            Log.d("WorkflowApi", "PUT ${ApiRoutes.WORKFLOWS}/$id -> code=$code body=$body resp=$respText")
+            Log.d("WorkflowApi", "PATCH ${ApiRoutes.WORKFLOWS}/$id -> code=$code body=$body resp=$respText")
 
             if (code in 200..299) {
                 val jo = JSONObject(respText)
+                val actionParams = jsonObjectToList(jo.optJSONObject("ActionParameters"))
+                val reactionParams = jsonObjectToList(jo.optJSONObject("ReactionParameters"))
                 val wf = Workflow(
                     jo.optInt("ID"),
-                    jo.optString("ActionName", actionName)
+                    jo.optString("ActionName", actionName),
+                    actionParams,
+                    jo.optString("ReactionName", ""),
+                    reactionParams,
+                    jo.optBoolean("Active", true)
                 )
                 Result.success(wf)
             } else {
@@ -200,4 +233,255 @@ private fun jsonArrayToList(arr: JSONArray?): List<String> {
         try { out.add(arr.optString(i, "")) } catch (_: Exception) {}
     }
     return out
+}
+
+private fun jsonObjectToList(obj: JSONObject?): List<String> {
+    if (obj == null) return emptyList()
+    val out = mutableListOf<String>()
+    val keys = obj.keys()
+    while (keys.hasNext()) {
+        val key = keys.next()
+        try {
+            val value = obj.optString(key, "")
+            if (value.isNotBlank()) {
+                out.add("$key=$value")
+            }
+        } catch (_: Exception) {}
+    }
+    return out
+}
+
+private fun listToJSONObject(params: List<String>): JSONObject {
+    val obj = JSONObject()
+    params.forEach { param ->
+        val parts = param.split("=", limit = 2)
+        if (parts.size == 2) {
+            obj.put(parts[0], parts[1])
+        }
+    }
+    return obj
+}
+
+suspend fun checkWorkflowApi(
+    actionName: String,
+    actionParams: List<String>,
+    reactionName: String,
+    reactionParams: List<String>
+): Result<String> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL(ApiRoutes.BASE + ApiRoutes.WORKFLOW_CHECK)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                doOutput = true
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val body = JSONObject().apply {
+                put("ActionName", actionName)
+                put("ActionParameters", listToJSONObject(actionParams))
+                put("ReactionName", reactionName)
+                put("ReactionParameters", listToJSONObject(reactionParams))
+            }.toString()
+
+            conn.outputStream.use { os: OutputStream ->
+                os.write(body.toByteArray(Charsets.UTF_8))
+                os.flush()
+            }
+
+            val code = conn.responseCode
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "POST ${ApiRoutes.WORKFLOW_CHECK} -> code=$code resp=$respText")
+
+            if (code in 200..299) {
+                try {
+                    val jo = JSONObject(respText)
+                    val syntaxValid = jo.optBoolean("SyntaxValid", false)
+                    val error = jo.optString("Error", "")
+
+                    if (syntaxValid) {
+                        Result.success(respText)
+                    } else {
+                        Result.failure(Exception(error.ifBlank { "Workflow syntax validation failed" }))
+                    }
+                } catch (e: Exception) {
+                    Result.failure(Exception("Invalid response format from workflow check"))
+                }
+            } else {
+                Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("WorkflowApi", "checkWorkflowApi error", e)
+            Result.failure(e)
+        }
+    }
+}
+
+suspend fun getAllActions(): Result<List<String>> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL(ApiRoutes.BASE + ApiRoutes.ACTIONS)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val code = conn.responseCode
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "GET ${ApiRoutes.ACTIONS} -> code=$code resp=$respText")
+
+            if (code in 200..299) {
+                val jo = JSONObject(respText)
+                val arr = jo.optJSONArray("ActionsName")
+                if (arr != null) {
+                    val actions = mutableListOf<String>()
+                    for (i in 0 until arr.length()) {
+                        actions.add(arr.optString(i, ""))
+                    }
+                    Result.success(actions)
+                } else {
+                    Result.success(emptyList())
+                }
+            } else {
+                Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("WorkflowApi", "getAllActions error", e)
+            Result.failure(e)
+        }
+    }
+}
+
+suspend fun getAllReactions(): Result<List<String>> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL(ApiRoutes.BASE + ApiRoutes.REACTIONS)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val code = conn.responseCode
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "GET ${ApiRoutes.REACTIONS} -> code=$code resp=$respText")
+
+            if (code in 200..299) {
+                val jo = JSONObject(respText)
+                val arr = jo.optJSONArray("ReactionsName")
+                if (arr != null) {
+                    val reactions = mutableListOf<String>()
+                    for (i in 0 until arr.length()) {
+                        reactions.add(arr.optString(i, ""))
+                    }
+                    Result.success(reactions)
+                } else {
+                    Result.success(emptyList())
+                }
+            } else {
+                Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("WorkflowApi", "getAllReactions error", e)
+            Result.failure(e)
+        }
+    }
+}
+
+data class ActionInfo(
+    val Name: String,
+    val PrettyName: String,
+    val Description: String,
+    val Parameters: List<String>
+)
+
+data class ReactionInfo(
+    val Name: String,
+    val PrettyName: String,
+    val Description: String,
+    val Parameters: List<String>
+)
+
+suspend fun getActionInfo(actionName: String): Result<ActionInfo> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL(ApiRoutes.BASE + ApiRoutes.ACTIONS + actionName)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val code = conn.responseCode
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "GET ${ApiRoutes.ACTIONS}$actionName -> code=$code resp=$respText")
+
+            if (code in 200..299) {
+                val jo = JSONObject(respText)
+                val actionInfo = ActionInfo(
+                    jo.optString("Name", ""),
+                    jo.optString("PrettyName", ""),
+                    jo.optString("Description", ""),
+                    jsonArrayToList(jo.optJSONArray("Parameters"))
+                )
+                Result.success(actionInfo)
+            } else {
+                Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("WorkflowApi", "getActionInfo error", e)
+            Result.failure(e)
+        }
+    }
+}
+
+suspend fun getReactionInfo(reactionName: String): Result<ReactionInfo> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL(ApiRoutes.BASE + ApiRoutes.REACTIONS + reactionName)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val code = conn.responseCode
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "GET ${ApiRoutes.REACTIONS}$reactionName -> code=$code resp=$respText")
+
+            if (code in 200..299) {
+                val jo = JSONObject(respText)
+                val reactionInfo = ReactionInfo(
+                    jo.optString("Name", ""),
+                    jo.optString("PrettyName", ""),
+                    jo.optString("Description", ""),
+                    jsonArrayToList(jo.optJSONArray("Parameters"))
+                )
+                Result.success(reactionInfo)
+            } else {
+                Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("WorkflowApi", "getReactionInfo error", e)
+            Result.failure(e)
+        }
+    }
 }

@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import kotlin.text.set
 
 data class Workflow(
@@ -26,7 +28,8 @@ data class Workflow(
     val ActionName: String = "",
     val ActionParameters: List<String> = emptyList(),
     val ReactionName: String = "",
-    val ReactionParameters: List<String> = emptyList()
+    val ReactionParameters: List<String> = emptyList(),
+    val Active: Boolean = true
 )
 
 @Composable
@@ -110,6 +113,7 @@ fun CreateWorkflowScreen(
     onClose: () -> Unit,
     onSaved: (Workflow) -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var actionName by remember { mutableStateOf("") }
     var reactionName by remember { mutableStateOf("") }
@@ -119,6 +123,66 @@ fun CreateWorkflowScreen(
 
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+
+    var availableActionInfos by remember { mutableStateOf<List<ActionInfo>>(emptyList()) }
+    var availableReactionInfos by remember { mutableStateOf<List<ReactionInfo>>(emptyList()) }
+    var selectedActionInfo by remember { mutableStateOf<ActionInfo?>(null) }
+    var selectedReactionInfo by remember { mutableStateOf<ReactionInfo?>(null) }
+    var actionsLoading by remember { mutableStateOf(false) }
+    var reactionsLoading by remember { mutableStateOf(false) }
+    var actionExpanded by remember { mutableStateOf(false) }
+    var reactionExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        actionsLoading = true
+        reactionsLoading = true
+
+        getAllActions().fold(
+            onSuccess = { actionNames ->
+                val actionInfos = actionNames.map { actionName ->
+                    ActionInfo(actionName, actionName, "", emptyList())
+                }
+                availableActionInfos = actionInfos
+                actionsLoading = false
+
+                if (actionName.isNotBlank()) {
+                    getActionInfo(actionName).fold(
+                        onSuccess = { info ->
+                            selectedActionInfo = info
+                            availableActionInfos = availableActionInfos.map {
+                                if (it.Name == actionName) info else it
+                            }
+                        },
+                        onFailure = { /* keep minimal info */ }
+                    )
+                }
+            },
+            onFailure = { actionsLoading = false }
+        )
+
+        getAllReactions().fold(
+            onSuccess = { reactionNames ->
+                val reactionInfos = reactionNames.map { reactionName ->
+                    ReactionInfo(reactionName, reactionName, "", emptyList())
+                }
+                availableReactionInfos = reactionInfos
+                reactionsLoading = false
+
+                if (reactionName.isNotBlank()) {
+                    getReactionInfo(reactionName).fold(
+                        onSuccess = { info ->
+                            selectedReactionInfo = info
+                            availableReactionInfos = availableReactionInfos.map {
+                                if (it.Name == reactionName) info else it
+                            }
+                        },
+                        onFailure = { /* keep minimal info */ }
+                    )
+                }
+            },
+            onFailure = { reactionsLoading = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -137,7 +201,19 @@ fun CreateWorkflowScreen(
                         scope.launch {
                             val res = createWorkflowApi(token, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() })
                             loading = false
-                            res.fold(onSuccess = { wf -> onSaved(wf) }, onFailure = { e -> error = e.message ?: "Save failed" })
+                            res.fold(
+                                onSuccess = { wf -> onSaved(wf) },
+                                onFailure = { e ->
+                                    val errorMsg = e.message ?: "Save failed"
+                                    if (errorMsg.contains("syntax", ignoreCase = true) ||
+                                        errorMsg.contains("validation", ignoreCase = true) ||
+                                        errorMsg.contains("Workflow check failed", ignoreCase = true)) {
+                                        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                    } else {
+                                        error = errorMsg
+                                    }
+                                }
+                            )
                         }
                     }) {
                         if (loading) CircularProgressIndicator(modifier = Modifier.size(18.dp)) else Text("Save")
@@ -155,14 +231,66 @@ fun CreateWorkflowScreen(
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text("Trigger Details", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = actionName,
-                            onValueChange = { actionName = it },
-                            label = { Text("Action name") },
-                            placeholder = { Text("Ex: timer_cron_job") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        ExposedDropdownMenuBox(
+                            expanded = actionExpanded,
+                            onExpandedChange = { actionExpanded = !actionExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedActionInfo?.PrettyName ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Action") },
+                                trailingIcon = {
+                                    if (actionsLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                                    } else {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionExpanded)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = actionExpanded,
+                                onDismissRequest = { actionExpanded = false }
+                            ) {
+                                availableActionInfos.forEach { actionInfo ->
+                                    DropdownMenuItem(
+                                        text = { Text(actionInfo.PrettyName) },
+                                        onClick = {
+                                            actionName = actionInfo.Name
+                                            actionExpanded = false
+
+                                            if (actionInfo.Description.isEmpty()) {
+                                                scope.launch {
+                                                    getActionInfo(actionInfo.Name).fold(
+                                                        onSuccess = { fullInfo ->
+                                                            selectedActionInfo = fullInfo
+                                                            availableActionInfos = availableActionInfos.map {
+                                                                if (it.Name == actionInfo.Name) fullInfo else it
+                                                            }
+                                                            actionParams.clear()
+                                                            fullInfo.Parameters.forEach { param ->
+                                                                actionParams.add("$param=")
+                                                            }
+                                                        },
+                                                        onFailure = {
+                                                            selectedActionInfo = actionInfo
+                                                            actionParams.clear()
+                                                        }
+                                                    )
+                                                }
+                                            } else {
+                                                selectedActionInfo = actionInfo
+                                                actionParams.clear()
+                                                actionInfo.Parameters.forEach { param ->
+                                                    actionParams.add("$param=")
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text("Action parameters", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -192,14 +320,66 @@ fun CreateWorkflowScreen(
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text("Reaction Details", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = reactionName,
-                            onValueChange = { reactionName = it },
-                            label = { Text("Reaction name") },
-                            placeholder = { Text("Ex: github_create_issue") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        ExposedDropdownMenuBox(
+                            expanded = reactionExpanded,
+                            onExpandedChange = { reactionExpanded = !reactionExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedReactionInfo?.PrettyName ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Reaction") },
+                                trailingIcon = {
+                                    if (reactionsLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                                    } else {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = reactionExpanded)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = reactionExpanded,
+                                onDismissRequest = { reactionExpanded = false }
+                            ) {
+                                availableReactionInfos.forEach { reactionInfo ->
+                                    DropdownMenuItem(
+                                        text = { Text(reactionInfo.PrettyName) },
+                                        onClick = {
+                                            reactionName = reactionInfo.Name
+                                            reactionExpanded = false
+
+                                            if (reactionInfo.Description.isEmpty()) {
+                                                scope.launch {
+                                                    getReactionInfo(reactionInfo.Name).fold(
+                                                        onSuccess = { fullInfo ->
+                                                            selectedReactionInfo = fullInfo
+                                                            availableReactionInfos = availableReactionInfos.map {
+                                                                if (it.Name == reactionInfo.Name) fullInfo else it
+                                                            }
+                                                            reactionParams.clear()
+                                                            fullInfo.Parameters.forEach { param ->
+                                                                reactionParams.add("$param=")
+                                                            }
+                                                        },
+                                                        onFailure = {
+                                                            selectedReactionInfo = reactionInfo
+                                                            reactionParams.clear()
+                                                        }
+                                                    )
+                                                }
+                                            } else {
+                                                selectedReactionInfo = reactionInfo
+                                                reactionParams.clear()
+                                                reactionInfo.Parameters.forEach { param ->
+                                                    reactionParams.add("$param=")
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text("Reaction parameters", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -259,15 +439,75 @@ fun EditWorkflowScreen(
     onClose: () -> Unit,
     onSaved: (Workflow) -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var actionName by remember { mutableStateOf(workflow.ActionName) }
     var reactionName by remember { mutableStateOf(workflow.ReactionName) }
+    var active by remember { mutableStateOf(workflow.Active) }
 
     val actionParams = remember { mutableStateListOf<String>().apply { addAll(workflow.ActionParameters) } }
     val reactionParams = remember { mutableStateListOf<String>().apply { addAll(workflow.ReactionParameters) } }
 
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+
+    var availableActionInfos by remember { mutableStateOf<List<ActionInfo>>(emptyList()) }
+    var availableReactionInfos by remember { mutableStateOf<List<ReactionInfo>>(emptyList()) }
+    var selectedActionInfo by remember { mutableStateOf<ActionInfo?>(null) }
+    var selectedReactionInfo by remember { mutableStateOf<ReactionInfo?>(null) }
+    var actionsLoading by remember { mutableStateOf(false) }
+    var reactionsLoading by remember { mutableStateOf(false) }
+    var actionExpanded by remember { mutableStateOf(false) }
+    var reactionExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        actionsLoading = true
+        reactionsLoading = true
+
+        scope.launch {
+            val actionInfos = mutableListOf<ActionInfo>()
+            getAllActions().fold(
+                onSuccess = { actionNames ->
+                    actionNames.forEach { actionName ->
+                        getActionInfo(actionName).fold(
+                            onSuccess = { info -> actionInfos.add(info) },
+                            onFailure = { /* skip failed ones */ }
+                        )
+                    }
+                },
+                onFailure = { /* keep empty list */ }
+            )
+            availableActionInfos = actionInfos
+            actionsLoading = false
+
+            val selectedAction = actionInfos.find { it.Name == actionName }
+            if (selectedAction != null) {
+                selectedActionInfo = selectedAction
+            }
+        }
+
+        scope.launch {
+            val reactionInfos = mutableListOf<ReactionInfo>()
+            getAllReactions().fold(
+                onSuccess = { reactionNames ->
+                    reactionNames.forEach { reactionName ->
+                        getReactionInfo(reactionName).fold(
+                            onSuccess = { info -> reactionInfos.add(info) },
+                            onFailure = { /* skip failed ones */ }
+                        )
+                    }
+                },
+                onFailure = { /* keep empty list */ }
+            )
+            availableReactionInfos = reactionInfos
+            reactionsLoading = false
+
+            val selectedReaction = reactionInfos.find { it.Name == reactionName }
+            if (selectedReaction != null) {
+                selectedReactionInfo = selectedReaction
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -284,9 +524,21 @@ fun EditWorkflowScreen(
                         loading = true
                         error = null
                         scope.launch {
-                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() })
+                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, active)
                             loading = false
-                            res.fold(onSuccess = { wf -> onSaved(wf) }, onFailure = { e -> error = e.message ?: "Save failed" })
+                            res.fold(
+                                onSuccess = { wf -> onSaved(wf) },
+                                onFailure = { e ->
+                                    val errorMsg = e.message ?: "Save failed"
+                                    if (errorMsg.contains("syntax", ignoreCase = true) ||
+                                        errorMsg.contains("validation", ignoreCase = true) ||
+                                        errorMsg.contains("Workflow check failed", ignoreCase = true)) {
+                                        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                    } else {
+                                        error = errorMsg
+                                    }
+                                }
+                            )
                         }
                     }) {
                         if (loading) CircularProgressIndicator(modifier = Modifier.size(18.dp)) else Text("Save")
@@ -300,19 +552,70 @@ fun EditWorkflowScreen(
                 .padding(innerPadding)
                 .padding(16.dp)) {
 
-                // Trigger card
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text("Trigger Details", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = actionName,
-                            onValueChange = { actionName = it },
-                            label = { Text("Action name") },
-                            placeholder = { Text("Ex: timer_cron_job") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        ExposedDropdownMenuBox(
+                            expanded = actionExpanded,
+                            onExpandedChange = { actionExpanded = !actionExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedActionInfo?.PrettyName ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Action") },
+                                trailingIcon = {
+                                    if (actionsLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                                    } else {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionExpanded)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = actionExpanded,
+                                onDismissRequest = { actionExpanded = false }
+                            ) {
+                                availableActionInfos.forEach { actionInfo ->
+                                    DropdownMenuItem(
+                                        text = { Text(actionInfo.PrettyName) },
+                                        onClick = {
+                                            actionName = actionInfo.Name
+                                            actionExpanded = false
+
+                                            if (actionInfo.Description.isEmpty()) {
+                                                scope.launch {
+                                                    getActionInfo(actionInfo.Name).fold(
+                                                        onSuccess = { fullInfo ->
+                                                            selectedActionInfo = fullInfo
+                                                            availableActionInfos = availableActionInfos.map {
+                                                                if (it.Name == actionInfo.Name) fullInfo else it
+                                                            }
+                                                            actionParams.clear()
+                                                            fullInfo.Parameters.forEach { param ->
+                                                                actionParams.add("$param=")
+                                                            }
+                                                        },
+                                                        onFailure = {
+                                                            selectedActionInfo = actionInfo
+                                                            actionParams.clear()
+                                                        }
+                                                    )
+                                                }
+                                            } else {
+                                                selectedActionInfo = actionInfo
+                                                actionParams.clear()
+                                                actionInfo.Parameters.forEach { param ->
+                                                    actionParams.add("$param=")
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text("Action parameters", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -342,14 +645,66 @@ fun EditWorkflowScreen(
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text("Reaction Details", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = reactionName,
-                            onValueChange = { reactionName = it },
-                            label = { Text("Reaction name") },
-                            placeholder = { Text("Ex: github_create_issue") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        ExposedDropdownMenuBox(
+                            expanded = reactionExpanded,
+                            onExpandedChange = { reactionExpanded = !reactionExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedReactionInfo?.PrettyName ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Reaction") },
+                                trailingIcon = {
+                                    if (reactionsLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                                    } else {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = reactionExpanded)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = reactionExpanded,
+                                onDismissRequest = { reactionExpanded = false }
+                            ) {
+                                availableReactionInfos.forEach { reactionInfo ->
+                                    DropdownMenuItem(
+                                        text = { Text(reactionInfo.PrettyName) },
+                                        onClick = {
+                                            reactionName = reactionInfo.Name
+                                            reactionExpanded = false
+
+                                            if (reactionInfo.Description.isEmpty()) {
+                                                scope.launch {
+                                                    getReactionInfo(reactionInfo.Name).fold(
+                                                        onSuccess = { fullInfo ->
+                                                            selectedReactionInfo = fullInfo
+                                                            availableReactionInfos = availableReactionInfos.map {
+                                                                if (it.Name == reactionInfo.Name) fullInfo else it
+                                                            }
+                                                            reactionParams.clear()
+                                                            fullInfo.Parameters.forEach { param ->
+                                                                reactionParams.add("$param=")
+                                                            }
+                                                        },
+                                                        onFailure = {
+                                                            selectedReactionInfo = reactionInfo
+                                                            reactionParams.clear()
+                                                        }
+                                                    )
+                                                }
+                                            } else {
+                                                selectedReactionInfo = reactionInfo
+                                                reactionParams.clear()
+                                                reactionInfo.Parameters.forEach { param ->
+                                                    reactionParams.add("$param=")
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text("Reaction parameters", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -372,6 +727,21 @@ fun EditWorkflowScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Active", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = active,
+                            onCheckedChange = { active = it }
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
                 Row {
                     Button(onClick = {
@@ -379,7 +749,7 @@ fun EditWorkflowScreen(
                         loading = true
                         error = null
                         scope.launch {
-                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() })
+                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, active)
                             loading = false
                             res.fold(onSuccess = { wf -> onSaved(wf) }, onFailure = { e -> error = e.message ?: "Save failed" })
                         }
