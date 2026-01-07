@@ -9,25 +9,42 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/juju/errors"
 	"log"
+	"strconv"
 )
 
-func GetAllWorkflows(_ *gin.Context) (*[]models.Workflow, error) {
+func GetAllWorkflows(_ *gin.Context) (*[]routes.GetAllWorkflowResponse, error) {
 	var workflows []models.Workflow
 	if rst := initializers.DB.Find(&workflows); rst.Error != nil {
 		return nil, errors.New("Internal server error")
 	}
-	return &workflows, nil
+	var response []routes.GetAllWorkflowResponse
+	for i := 0; i < len(workflows); i++ {
+		response = append(response, routes.GetAllWorkflowResponse{
+			WorkflowID: workflows[i].ID,
+			Name:       workflows[i].Name,
+			Active:     workflows[i].Active,
+		})
+	}
+	return &response, nil
 }
 
-func GetWorkflow(_ *gin.Context, in *routes.WorkflowID) (*models.Workflow, error) {
+func GetWorkflow(_ *gin.Context, in *routes.WorkflowID) (*routes.GetWorkflowResponse, error) {
 	var workflow models.Workflow
 	if rst := initializers.DB.First(&workflow).Where("id=?", in.WorkflowID); rst.Error != nil {
 		return nil, errors.NotFound
 	}
-	return &workflow, nil
+	return &routes.GetWorkflowResponse{
+		WorkflowID:         workflow.ID,
+		Name:               workflow.Name,
+		ActionName:         workflow.ActionName,
+		ActionParameters:   workflow.ActionParameters,
+		ReactionName:       workflow.ReactionName,
+		ReactionParameters: workflow.ReactionParameters,
+		Active:             workflow.Active,
+	}, nil
 }
 
-func CreateNewWorkflow(c *gin.Context) (*models.Workflow, error) {
+func CreateNewWorkflow(c *gin.Context) (*routes.GetWorkflowResponse, error) {
 	maybeUser, ok := c.Get("user")
 	if !ok {
 		return nil, errors.BadRequest
@@ -40,6 +57,7 @@ func CreateNewWorkflow(c *gin.Context) (*models.Workflow, error) {
 
 	workflow := models.Workflow{
 		OwnerUserID:        user.ID,
+		Name:               "New Workflow",
 		ActionName:         "action_none",
 		ActionParameters:   nil,
 		ReactionName:       "reaction_none",
@@ -49,17 +67,25 @@ func CreateNewWorkflow(c *gin.Context) (*models.Workflow, error) {
 	if rst := initializers.DB.Create(&workflow); rst.Error != nil {
 		return nil, errors.New("Internal server error")
 	}
-	return &workflow, nil
+	workflow.Name = workflow.Name + " " + strconv.Itoa(int(workflow.ID))
+	initializers.DB.Save(&workflow)
+	return &routes.GetWorkflowResponse{
+		WorkflowID:         workflow.ID,
+		Name:               workflow.Name,
+		ActionName:         workflow.ActionName,
+		ActionParameters:   workflow.ActionParameters,
+		ReactionName:       workflow.ReactionName,
+		ReactionParameters: workflow.ReactionParameters,
+		Active:             workflow.Active,
+	}, nil
 }
 
 func CheckWorkflow(_ *gin.Context, in *routes.CheckWorkflowRequest) (*routes.CheckWorkflowResponse, error) {
 	workflow := models.Workflow{
-		//OwnerUserID:        0,
 		ActionName:         in.ActionName,
 		ActionParameters:   in.ActionParameters,
 		ReactionName:       in.ReactionName,
 		ReactionParameters: in.ReactionParameters,
-		//Active:             false,
 	}
 
 	err, ok := engines.ValidateWorkflow(workflow)
@@ -107,7 +133,7 @@ func DeleteWorkflow(c *gin.Context, in *routes.WorkflowID) error {
 	return nil
 }
 
-func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*models.Workflow, error) {
+func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*routes.GetWorkflowResponse, error) {
 	maybeUser, ok := c.Get("user")
 	if !ok {
 		return nil, errors.BadRequest
@@ -134,6 +160,7 @@ func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*models.Workf
 		}
 	}
 
+	workflow.Name = in.Name
 	workflow.ActionName = in.ActionName
 	workflow.ActionParameters = in.ActionParameters
 	workflow.ReactionName = in.ReactionName
@@ -155,5 +182,13 @@ func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*models.Workf
 		}
 	}
 
-	return &workflow, nil
+	return &routes.GetWorkflowResponse{
+		WorkflowID:         workflow.ID,
+		Name:               workflow.Name,
+		ActionName:         workflow.ActionName,
+		ActionParameters:   workflow.ActionParameters,
+		ReactionName:       workflow.ReactionName,
+		ReactionParameters: workflow.ReactionParameters,
+		Active:             workflow.Active,
+	}, nil
 }
