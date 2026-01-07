@@ -22,6 +22,7 @@ type GetWorkflowResponse struct {
 
 type EditWorkflowRequest struct {
 	WorkflowID         uint `path:"id"`
+	Name               string
 	ActionName         string
 	ActionParameters   map[string]string
 	ReactionName       string

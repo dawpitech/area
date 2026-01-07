@@ -160,6 +160,7 @@ func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*routes.GetWo
 		}
 	}
 
+	workflow.Name = in.Name
 	workflow.ActionName = in.ActionName
 	workflow.ActionParameters = in.ActionParameters
 	workflow.ReactionName = in.ReactionName
