@@ -30,7 +30,7 @@ func GetAllWorkflows(_ *gin.Context) (*[]routes.GetAllWorkflowResponse, error) {
 
 func GetWorkflow(_ *gin.Context, in *routes.WorkflowID) (*routes.GetWorkflowResponse, error) {
 	var workflow models.Workflow
-	if rst := initializers.DB.First(&workflow).Where("id=?", in.WorkflowID); rst.Error != nil {
+	if rst := initializers.DB.Where("id=?", in.WorkflowID).First(&workflow); rst.Error != nil {
 		return nil, errors.NotFound
 	}
 	return &routes.GetWorkflowResponse{
@@ -114,7 +114,7 @@ func DeleteWorkflow(c *gin.Context, in *routes.WorkflowID) error {
 	}
 
 	var workflow models.Workflow
-	if rst := initializers.DB.First(&workflow).Where("id=?", in.WorkflowID); rst.Error != nil {
+	if rst := initializers.DB.Where("id=?", in.WorkflowID).First(&workflow); rst.Error != nil {
 		return errors.New("No workflow found with the given ID.")
 	}
 
@@ -145,7 +145,7 @@ func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*routes.GetWo
 	}
 
 	var workflow models.Workflow
-	if rst := initializers.DB.First(&workflow).Where("id=?", in.WorkflowID); rst.Error != nil {
+	if rst := initializers.DB.Where("id=?", in.WorkflowID).First(&workflow); rst.Error != nil {
 		return nil, errors.New("No workflow found with the given ID.")
 	}
 
