@@ -65,13 +65,15 @@ func TriggerLaunchNewCronJob(ctx models.TriggerContext) error {
 				err := ctx.ReactionHandler(ctx.ReactionContext)
 				if err != nil {
 					logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, err.Error())
+				} else {
+					logEngine.NewLogEntry(ctx.WorkflowID, models.InfoLog, "Workflow execution was successful.")
 				}
 			},
 		),
 	)
 
 	if err != nil {
-		return errors.New("Set-up of the cron-job failed, please re-try later.")
+		return errors.New("Set-up of the cron-job failed, please re-try later. Err: " + err.Error())
 	}
 	workflowJobUUID[ctx.WorkflowID] = job.ID()
 

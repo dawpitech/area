@@ -1,6 +1,7 @@
 package engines
 
 import (
+	"dawpitech/area/engines/logEngine"
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
 	"dawpitech/area/services"
@@ -60,6 +61,7 @@ func SetupWorkflowTrigger(workflow models.Workflow) (error, bool) {
 	}
 	err := services.ActionStore[workflow.ActionName].SetupTrigger(context)
 	if err != nil {
+		logEngine.NewLogEntry(workflow.ID, models.ErrorLog, err.Error())
 		return errors.New("Err occurred during setup of the trigger: " + err.Error()), false
 	}
 	return nil, true
