@@ -1,1 +1,2 @@
-docker-compose.yml @dawoox
+docker-compose.yml  @dawoox
+/backend/           @dawoox
