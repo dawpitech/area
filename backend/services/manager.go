@@ -20,19 +20,25 @@ var Services = []models.Service{
 var ActionStore = make(map[string]models.Action)
 var ReactionStore = make(map[string]models.Reaction)
 
+var ActionList []models.Action
+var ReactionList []models.Reaction
+
 func Init() {
 	for i := 0; i < len(Services); i++ {
 		service := Services[i]
 		for x := 0; x < len(service.Actions); x++ {
 			ActionStore[service.Actions[x].Name] = service.Actions[x]
+			ActionList = append(ActionList, service.Actions[x])
 		}
 		for x := 0; x < len(service.Reactions); x++ {
 			ReactionStore[service.Reactions[x].Name] = service.Reactions[x]
+			ReactionList = append(ReactionList, service.Reactions[x])
 		}
 	}
 }
 
 func RegisterServiceRoutes(router *fizz.Fizz) {
+	providersRoute := router.Group("", "Providers specific routes", "WIP")
 	for i := 0; i < len(Services); i++ {
 		service := Services[i]
 		routeBase := fmt.Sprintf("/providers/%s/auth", strings.ToLower(service.Name))
@@ -40,7 +46,7 @@ func RegisterServiceRoutes(router *fizz.Fizz) {
 		routeAuthCallback := routeBase + "/callback"
 		routeAuthCheck := routeBase + "/check"
 		if service.AuthMethod != nil {
-			router.GET(
+			providersRoute.GET(
 				routeAuthInit,
 				[]fizz.OperationOption{
 					fizz.Security(&openapi.SecurityRequirement{
@@ -50,12 +56,12 @@ func RegisterServiceRoutes(router *fizz.Fizz) {
 				middlewares.CheckAuth,
 				tonic.Handler(service.AuthMethod.HandlerAuthInit, 200),
 			)
-			router.GET(
+			providersRoute.GET(
 				routeAuthCallback,
 				[]fizz.OperationOption{},
 				tonic.Handler(service.AuthMethod.HandlerAuthCallback, 200),
 			)
-			router.GET(
+			providersRoute.GET(
 				routeAuthCheck,
 				[]fizz.OperationOption{
 					fizz.Security(&openapi.SecurityRequirement{

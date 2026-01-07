@@ -10,7 +10,7 @@ import (
 )
 
 func TriggerLaunchAtJob(ctx models.TriggerContext) error {
-	time := strings.Split(ctx.ActionParameters[0], ":")
+	time := strings.Split(ctx.ActionParameters["cron"], ":")
 
 	if len(time) != 3 {
 		return errors.New("Provided time of the day is invalid")
@@ -24,7 +24,7 @@ func TriggerLaunchAtJob(ctx models.TriggerContext) error {
 		return errors.New("Provided time of the day is invalid")
 	}
 
-	_, err := scheduler.NewJob(
+	job, err := scheduler.NewJob(
 		gocron.DailyJob(
 			1,
 			gocron.NewAtTimes(
@@ -40,12 +40,22 @@ func TriggerLaunchAtJob(ctx models.TriggerContext) error {
 	if err != nil {
 		return errors.New("Set-up of the scheduled job failed, please re-try later.")
 	}
+	workflowJobUUID[ctx.WorkflowID] = job.ID()
 
 	return nil
 }
 
+func RemoveLaunchNewCronJob(ctx models.TriggerContext) error {
+	err := scheduler.RemoveJob(workflowJobUUID[ctx.WorkflowID])
+	if err != nil {
+		return errors.New("Removal of given job resulted in an error")
+	}
+	delete(workflowJobUUID, ctx.WorkflowID)
+	return nil
+}
+
 func TriggerLaunchNewCronJob(ctx models.TriggerContext) error {
-	crontab := ctx.ActionParameters[0]
+	crontab := ctx.ActionParameters["cron"]
 	_, err := scheduler.NewJob(
 		gocron.CronJob(crontab, false),
 		gocron.NewTask(
