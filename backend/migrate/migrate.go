@@ -20,6 +20,7 @@ func main() {
 		&models.User{},
 		&models.AuthMethods{},
 		&models.Workflow{},
+		&models.LogEntry{},
 	)
 
 	if err != nil {
