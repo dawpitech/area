@@ -65,7 +65,11 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		"/:id",
 		[]fizz.OperationOption{
 			fizz.Summary("Delete a workflow"),
+			fizz.Security(&openapi.SecurityRequirement{
+				"bearerAuth": []string{},
+			}),
 		},
+		middlewares.CheckAuth,
 		tonic.Handler(controllers.DeleteWorkflow, 200),
 	)
 	workflowRoutes.GET(
