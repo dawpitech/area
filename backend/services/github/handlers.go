@@ -2,6 +2,7 @@ package github
 
 import (
 	"bytes"
+	"dawpitech/area/engines/logEngine"
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
 	"encoding/json"
@@ -21,6 +22,19 @@ type IssueRequest struct {
 }
 
 func HandlerCreateAnIssue(ctx models.HandlerContext) error {
+	var count int64
+	if rst := initializers.DB.
+		Model(&ProviderGithubAuthData{}).
+		Where("user_id=?", ctx.OwnerUserID).
+		Count(&count); rst.Error != nil {
+		return errors.New("Internal server error.")
+	}
+
+	if count < 1 {
+		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, "No Github Account linked, a github action cannot be used.")
+		return errors.New("The user has not github account linked.")
+	}
+
 	var OwnerOAuth2Access ProviderGithubAuthData
 	rst := initializers.DB.Where("user_id=?", ctx.OwnerUserID).First(&OwnerOAuth2Access)
 	if rst.Error != nil {
