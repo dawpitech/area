@@ -159,7 +159,6 @@ suspend fun signin(email: String, password: String): Result<String> {
 @Composable
 fun AuthHost(onAuthenticated: (token: String, email: String) -> Unit) {
     val context = LocalContext.current
-    // Initialiser le singleton TokenStore une seule fois avec le contexte
     LaunchedEffect(Unit) { TokenStore.init(context) }
     val tokenStore = TokenStore
 

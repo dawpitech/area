@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -21,10 +23,12 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
+import android.util.Log
 import kotlin.text.set
 
 data class Workflow(
     val ID: Int? = null,
+    val Name: String = "",
     val ActionName: String = "",
     val ActionParameters: List<String> = emptyList(),
     val ReactionName: String = "",
@@ -37,14 +41,15 @@ fun WorkflowListScreen(
     token: String?,
     onOpenCreate: () -> Unit,
     onEdit: (Workflow) -> Unit = {},
-    onDeleted: (Int) -> Unit = {}
+    onDeleted: (Int) -> Unit = {},
+    refreshTrigger: Int = 0
 ) {
     val scope = rememberCoroutineScope()
     var workflows by remember { mutableStateOf<List<Workflow>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(Unit, refreshTrigger) {
         loading = true
         fetchWorkflows(token).fold(onSuccess = { list ->
             workflows = list
@@ -76,20 +81,82 @@ fun WorkflowListScreen(
                         ) {
                             Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = wf.ActionName, style = MaterialTheme.typography.titleMedium)
-                                    Text(text = "ID: ${wf.ID}", style = MaterialTheme.typography.bodySmall)
-                                    Text(text = "→ ${wf.ReactionName}", style = MaterialTheme.typography.bodySmall)
+                                    Text(text = wf.Name, style = MaterialTheme.typography.titleMedium)
                                 }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(text = if (wf.Active) "Active" else "Inactive", style = MaterialTheme.typography.bodySmall)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Switch(
+                                        checked = wf.Active,
+                                        onCheckedChange = { newActive ->
+                                            val workflowId = wf.ID
+                                            if (workflowId != null) {
+                                                scope.launch {
+                                                    // Get full workflow details first
+                                                    getWorkflowDetails(token, workflowId).fold(
+                                                        onSuccess = { fullWorkflow ->
+                                                            // Update with new active status
+                                                            updateWorkflowApi(
+                                                                token, workflowId,
+                                                                fullWorkflow.ActionName,
+                                                                fullWorkflow.ActionParameters.map { it }, // Convert back to strings
+                                                                fullWorkflow.ReactionName,
+                                                                fullWorkflow.ReactionParameters.map { it }, // Convert back to strings
+                                                                newActive,
+                                                                fullWorkflow.Name
+                                                            ).fold(
+                                                                onSuccess = { updatedWorkflow ->
+                                                                    // Debug logging
+                                                                    println("Updating workflow ${workflowId}: old name='${wf.Name}', new name='${updatedWorkflow.Name}'")
+                                                                    // Update local list - find by index to be more reliable
+                                                                    val index = workflows.indexOfFirst { it.ID == workflowId }
+                                                                    if (index != -1) {
+                                                                        val newList = workflows.toMutableList()
+                                                                        newList[index] = updatedWorkflow
+                                                                        workflows = newList
+                                                                        println("Updated workflow at index $index")
+                                                                    } else {
+                                                                        println("Could not find workflow with ID $workflowId in list")
+                                                                    }
+                                                                },
+                                                                onFailure = { e -> error = e.message ?: "Update failed" }
+                                                            )
+                                                        },
+                                                        onFailure = { e -> error = e.message ?: "Failed to get workflow details" }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    )
                                 IconButton(onClick = {
-                                    val id: Int? = wf.ID
-                                    scope.launch {
-                                        val res = deleteWorkflowApi(token, id)
-                                        res.fold(onSuccess = {
-                                            workflows = workflows.filter { it.ID != id }
-                                        }, onFailure = { e -> error = e.message ?: "Delete failed" })
+                                    val workflowId: Int? = wf.ID
+                                    if (workflowId != null) {
+                                        scope.launch {
+                                            try {
+                                                val res = deleteWorkflowApi(token, workflowId)
+                                                res.fold(onSuccess = {
+                                                    // Use index-based removal for reliability
+                                                    val index = workflows.indexOfFirst { it.ID == workflowId }
+                                                    if (index != -1) {
+                                                        val newList = workflows.toMutableList()
+                                                        newList.removeAt(index)
+                                                        workflows = newList
+                                                        println("Deleted workflow at index $index")
+                                                        onDeleted(workflowId) // Call the callback after successful deletion
+                                                    }
+                                                }, onFailure = { e ->
+                                                    error = e.message ?: "Delete failed"
+                                                    Log.e("WorkflowScreens", "Failed to delete workflow $workflowId", e)
+                                                })
+                                            } catch (e: Exception) {
+                                                error = "Unexpected error during delete"
+                                                Log.e("WorkflowScreens", "Unexpected error deleting workflow $workflowId", e)
+                                            }
+                                        }
                                     }
                                 }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                        Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                    }
                                 }
                             }
                         }
@@ -115,8 +182,10 @@ fun CreateWorkflowScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var workflowName by remember { mutableStateOf("") }
     var actionName by remember { mutableStateOf("") }
     var reactionName by remember { mutableStateOf("") }
+    var isActive by remember { mutableStateOf(true) }
 
     val actionParams = remember { mutableStateListOf<String>() }
     val reactionParams = remember { mutableStateListOf<String>() }
@@ -137,51 +206,57 @@ fun CreateWorkflowScreen(
         actionsLoading = true
         reactionsLoading = true
 
-        getAllActions().fold(
-            onSuccess = { actionNames ->
-                val actionInfos = actionNames.map { actionName ->
-                    ActionInfo(actionName, actionName, "", emptyList())
-                }
-                availableActionInfos = actionInfos
-                actionsLoading = false
-
-                if (actionName.isNotBlank()) {
-                    getActionInfo(actionName).fold(
-                        onSuccess = { info ->
-                            selectedActionInfo = info
-                            availableActionInfos = availableActionInfos.map {
-                                if (it.Name == actionName) info else it
+        // Load all action details upfront
+        scope.launch {
+            val actionInfos = mutableListOf<ActionInfo>()
+            getAllActions().fold(
+                onSuccess = { actionNames ->
+                    actionNames.forEach { actionName ->
+                        getActionInfo(actionName).fold(
+                            onSuccess = { info -> actionInfos.add(info) },
+                            onFailure = {
+                                // Fallback: create minimal info if API fails
+                                actionInfos.add(ActionInfo(actionName, actionName, "", emptyList()))
                             }
-                        },
-                        onFailure = { /* keep minimal info */ }
-                    )
-                }
-            },
-            onFailure = { actionsLoading = false }
-        )
+                        )
+                    }
+                },
+                onFailure = {  }
+            )
+            availableActionInfos = actionInfos
+            actionsLoading = false
 
-        getAllReactions().fold(
-            onSuccess = { reactionNames ->
-                val reactionInfos = reactionNames.map { reactionName ->
-                    ReactionInfo(reactionName, reactionName, "", emptyList())
-                }
-                availableReactionInfos = reactionInfos
-                reactionsLoading = false
+            // Set selected action info if editing
+            if (actionName.isNotBlank()) {
+                selectedActionInfo = actionInfos.find { it.Name == actionName }
+            }
+        }
 
-                if (reactionName.isNotBlank()) {
-                    getReactionInfo(reactionName).fold(
-                        onSuccess = { info ->
-                            selectedReactionInfo = info
-                            availableReactionInfos = availableReactionInfos.map {
-                                if (it.Name == reactionName) info else it
+        // Load all reaction details upfront
+        scope.launch {
+            val reactionInfos = mutableListOf<ReactionInfo>()
+            getAllReactions().fold(
+                onSuccess = { reactionNames ->
+                    reactionNames.forEach { reactionName ->
+                        getReactionInfo(reactionName).fold(
+                            onSuccess = { info -> reactionInfos.add(info) },
+                            onFailure = {
+                                // Fallback: create minimal info if API fails
+                                reactionInfos.add(ReactionInfo(reactionName, reactionName, "", emptyList()))
                             }
-                        },
-                        onFailure = { /* keep minimal info */ }
-                    )
-                }
-            },
-            onFailure = { reactionsLoading = false }
-        )
+                        )
+                    }
+                },
+                onFailure = {  }
+            )
+            availableReactionInfos = reactionInfos
+            reactionsLoading = false
+
+            // Set selected reaction info if editing
+            if (reactionName.isNotBlank()) {
+                selectedReactionInfo = reactionInfos.find { it.Name == reactionName }
+            }
+        }
     }
 
     Scaffold(
@@ -199,7 +274,7 @@ fun CreateWorkflowScreen(
                         loading = true
                         error = null
                         scope.launch {
-                            val res = createWorkflowApi(token, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() })
+                            val res = createWorkflowApi(token, workflowName.ifBlank { "New Workflow" }, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, isActive)
                             loading = false
                             res.fold(
                                 onSuccess = { wf -> onSaved(wf) },
@@ -222,10 +297,38 @@ fun CreateWorkflowScreen(
             )
         },
         content = { innerPadding ->
+            val scrollState = rememberScrollState()
             Column(modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp)) {
+                .padding(16.dp)
+                .verticalScroll(scrollState)) {
+
+                // Workflow Name and Active Status
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Workflow Settings", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = workflowName,
+                            onValueChange = { workflowName = it },
+                            label = { Text("Workflow Name") },
+                            placeholder = { Text("Enter workflow name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Active", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                            Switch(
+                                checked = isActive,
+                                onCheckedChange = { isActive = it }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                     Column(modifier = Modifier.padding(12.dp)) {
@@ -258,33 +361,11 @@ fun CreateWorkflowScreen(
                                         text = { Text(actionInfo.PrettyName) },
                                         onClick = {
                                             actionName = actionInfo.Name
+                                            selectedActionInfo = actionInfo
                                             actionExpanded = false
-
-                                            if (actionInfo.Description.isEmpty()) {
-                                                scope.launch {
-                                                    getActionInfo(actionInfo.Name).fold(
-                                                        onSuccess = { fullInfo ->
-                                                            selectedActionInfo = fullInfo
-                                                            availableActionInfos = availableActionInfos.map {
-                                                                if (it.Name == actionInfo.Name) fullInfo else it
-                                                            }
-                                                            actionParams.clear()
-                                                            fullInfo.Parameters.forEach { param ->
-                                                                actionParams.add("$param=")
-                                                            }
-                                                        },
-                                                        onFailure = {
-                                                            selectedActionInfo = actionInfo
-                                                            actionParams.clear()
-                                                        }
-                                                    )
-                                                }
-                                            } else {
-                                                selectedActionInfo = actionInfo
-                                                actionParams.clear()
-                                                actionInfo.Parameters.forEach { param ->
-                                                    actionParams.add("$param=")
-                                                }
+                                            actionParams.clear()
+                                            actionInfo.Parameters.forEach { param ->
+                                                actionParams.add("$param=")
                                             }
                                         }
                                     )
@@ -296,13 +377,17 @@ fun CreateWorkflowScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         for ((index, param) in actionParams.withIndex()) {
+                            val parts = param.split("=", limit = 2)
+                            val key = parts.getOrNull(0) ?: ""
+                            val value = parts.getOrNull(1) ?: ""
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text("$key:", modifier = Modifier.width(100.dp))
                                 OutlinedTextField(
-                                    value = param,
-                                    onValueChange = { v -> actionParams[index] = v },
+                                    value = value,
+                                    onValueChange = { v -> actionParams[index] = "$key=$v" },
                                     modifier = Modifier.weight(1f),
                                     singleLine = true,
-                                    placeholder = { Text("Ex: * * * * *") },
+                                    placeholder = { Text("Enter value") },
                                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
                                 )
                                 IconButton(onClick = { actionParams.removeAt(index) }) {
@@ -347,33 +432,11 @@ fun CreateWorkflowScreen(
                                         text = { Text(reactionInfo.PrettyName) },
                                         onClick = {
                                             reactionName = reactionInfo.Name
+                                            selectedReactionInfo = reactionInfo
                                             reactionExpanded = false
-
-                                            if (reactionInfo.Description.isEmpty()) {
-                                                scope.launch {
-                                                    getReactionInfo(reactionInfo.Name).fold(
-                                                        onSuccess = { fullInfo ->
-                                                            selectedReactionInfo = fullInfo
-                                                            availableReactionInfos = availableReactionInfos.map {
-                                                                if (it.Name == reactionInfo.Name) fullInfo else it
-                                                            }
-                                                            reactionParams.clear()
-                                                            fullInfo.Parameters.forEach { param ->
-                                                                reactionParams.add("$param=")
-                                                            }
-                                                        },
-                                                        onFailure = {
-                                                            selectedReactionInfo = reactionInfo
-                                                            reactionParams.clear()
-                                                        }
-                                                    )
-                                                }
-                                            } else {
-                                                selectedReactionInfo = reactionInfo
-                                                reactionParams.clear()
-                                                reactionInfo.Parameters.forEach { param ->
-                                                    reactionParams.add("$param=")
-                                                }
+                                            reactionParams.clear()
+                                            reactionInfo.Parameters.forEach { param ->
+                                                reactionParams.add("$param=")
                                             }
                                         }
                                     )
@@ -384,13 +447,17 @@ fun CreateWorkflowScreen(
                         Text("Reaction parameters", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         for ((index, param) in reactionParams.withIndex()) {
+                            val parts = param.split("=", limit = 2)
+                            val key = parts.getOrNull(0) ?: ""
+                            val value = parts.getOrNull(1) ?: ""
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text("$key:", modifier = Modifier.width(100.dp))
                                 OutlinedTextField(
-                                    value = param,
-                                    onValueChange = { v -> reactionParams[index] = v },
+                                    value = value,
+                                    onValueChange = { v -> reactionParams[index] = "$key=$v" },
                                     modifier = Modifier.weight(1f),
                                     singleLine = true,
-                                    placeholder = { Text("Ex: dawpitech/test-thingy") },
+                                    placeholder = { Text("Enter value") },
                                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
                                 )
                                 IconButton(onClick = { reactionParams.removeAt(index) }) {
@@ -409,7 +476,7 @@ fun CreateWorkflowScreen(
                         loading = true
                         error = null
                         scope.launch {
-                            val res = createWorkflowApi(token, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() })
+                            val res = createWorkflowApi(token, workflowName.ifBlank { "New Workflow" }, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, isActive)
                             loading = false
                             res.fold(onSuccess = { wf -> onSaved(wf) }, onFailure = { e -> error = e.message ?: "Save failed" })
                         }
@@ -441,6 +508,7 @@ fun EditWorkflowScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var workflowName by remember { mutableStateOf(workflow.Name) }
     var actionName by remember { mutableStateOf(workflow.ActionName) }
     var reactionName by remember { mutableStateOf(workflow.ReactionName) }
     var active by remember { mutableStateOf(workflow.Active) }
@@ -464,6 +532,33 @@ fun EditWorkflowScreen(
         actionsLoading = true
         reactionsLoading = true
 
+        // First, fetch full workflow details if we don't have them
+        scope.launch {
+            if (workflow.ActionName.isBlank() || workflow.ReactionName.isBlank()) {
+                // Need to fetch full details
+                workflow.ID?.let { id ->
+                    Log.d("WorkflowScreens", "Editing workflow with ID $id, initial name '${workflow.Name}'")
+                    getWorkflowDetails(token, id).fold(
+                        onSuccess = { fullWorkflow ->
+                            Log.d("WorkflowScreens", "getWorkflowDetails returned: ID=${fullWorkflow.ID}, Name='${fullWorkflow.Name}'")
+                            // Update our local state with full details
+                            workflowName = fullWorkflow.Name
+                            actionName = fullWorkflow.ActionName
+                            reactionName = fullWorkflow.ReactionName
+                            active = fullWorkflow.Active
+                            actionParams.clear()
+                            actionParams.addAll(fullWorkflow.ActionParameters)
+                            reactionParams.clear()
+                            reactionParams.addAll(fullWorkflow.ReactionParameters)
+                        },
+                        onFailure = { e ->
+                            Log.e("WorkflowScreens", "getWorkflowDetails failed for ID $id", e)
+                        }
+                    )
+                }
+            }
+        }
+
         scope.launch {
             val actionInfos = mutableListOf<ActionInfo>()
             getAllActions().fold(
@@ -471,11 +566,11 @@ fun EditWorkflowScreen(
                     actionNames.forEach { actionName ->
                         getActionInfo(actionName).fold(
                             onSuccess = { info -> actionInfos.add(info) },
-                            onFailure = { /* skip failed ones */ }
+                            onFailure = {  }
                         )
                     }
                 },
-                onFailure = { /* keep empty list */ }
+                onFailure = {  }
             )
             availableActionInfos = actionInfos
             actionsLoading = false
@@ -493,11 +588,11 @@ fun EditWorkflowScreen(
                     reactionNames.forEach { reactionName ->
                         getReactionInfo(reactionName).fold(
                             onSuccess = { info -> reactionInfos.add(info) },
-                            onFailure = { /* skip failed ones */ }
+                            onFailure = {  }
                         )
                     }
                 },
-                onFailure = { /* keep empty list */ }
+                onFailure = {  }
             )
             availableReactionInfos = reactionInfos
             reactionsLoading = false
@@ -524,7 +619,7 @@ fun EditWorkflowScreen(
                         loading = true
                         error = null
                         scope.launch {
-                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, active)
+                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, active, workflowName)
                             loading = false
                             res.fold(
                                 onSuccess = { wf -> onSaved(wf) },
@@ -547,10 +642,30 @@ fun EditWorkflowScreen(
             )
         },
         content = { innerPadding ->
+            val scrollState = rememberScrollState()
             Column(modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp)) {
+                .padding(16.dp)
+                .verticalScroll(scrollState)) {
+
+                // Workflow Name
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Workflow Settings", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = workflowName,
+                            onValueChange = { workflowName = it },
+                            label = { Text("Workflow Name") },
+                            placeholder = { Text("Enter workflow name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                     Column(modifier = Modifier.padding(12.dp)) {
@@ -583,33 +698,11 @@ fun EditWorkflowScreen(
                                         text = { Text(actionInfo.PrettyName) },
                                         onClick = {
                                             actionName = actionInfo.Name
+                                            selectedActionInfo = actionInfo
                                             actionExpanded = false
-
-                                            if (actionInfo.Description.isEmpty()) {
-                                                scope.launch {
-                                                    getActionInfo(actionInfo.Name).fold(
-                                                        onSuccess = { fullInfo ->
-                                                            selectedActionInfo = fullInfo
-                                                            availableActionInfos = availableActionInfos.map {
-                                                                if (it.Name == actionInfo.Name) fullInfo else it
-                                                            }
-                                                            actionParams.clear()
-                                                            fullInfo.Parameters.forEach { param ->
-                                                                actionParams.add("$param=")
-                                                            }
-                                                        },
-                                                        onFailure = {
-                                                            selectedActionInfo = actionInfo
-                                                            actionParams.clear()
-                                                        }
-                                                    )
-                                                }
-                                            } else {
-                                                selectedActionInfo = actionInfo
-                                                actionParams.clear()
-                                                actionInfo.Parameters.forEach { param ->
-                                                    actionParams.add("$param=")
-                                                }
+                                            actionParams.clear()
+                                            actionInfo.Parameters.forEach { param ->
+                                                actionParams.add("$param=")
                                             }
                                         }
                                     )
@@ -621,13 +714,17 @@ fun EditWorkflowScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         for ((index, param) in actionParams.withIndex()) {
+                            val parts = param.split("=", limit = 2)
+                            val key = parts.getOrNull(0) ?: ""
+                            val value = parts.getOrNull(1) ?: ""
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text("$key:", modifier = Modifier.width(100.dp))
                                 OutlinedTextField(
-                                    value = param,
-                                    onValueChange = { v -> actionParams[index] = v },
+                                    value = value,
+                                    onValueChange = { v -> actionParams[index] = "$key=$v" },
                                     modifier = Modifier.weight(1f),
                                     singleLine = true,
-                                    placeholder = { Text("Ex: * * * * *") },
+                                    placeholder = { Text("Enter value") },
                                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
                                 )
                                 IconButton(onClick = { actionParams.removeAt(index) }) {
@@ -672,33 +769,11 @@ fun EditWorkflowScreen(
                                         text = { Text(reactionInfo.PrettyName) },
                                         onClick = {
                                             reactionName = reactionInfo.Name
+                                            selectedReactionInfo = reactionInfo
                                             reactionExpanded = false
-
-                                            if (reactionInfo.Description.isEmpty()) {
-                                                scope.launch {
-                                                    getReactionInfo(reactionInfo.Name).fold(
-                                                        onSuccess = { fullInfo ->
-                                                            selectedReactionInfo = fullInfo
-                                                            availableReactionInfos = availableReactionInfos.map {
-                                                                if (it.Name == reactionInfo.Name) fullInfo else it
-                                                            }
-                                                            reactionParams.clear()
-                                                            fullInfo.Parameters.forEach { param ->
-                                                                reactionParams.add("$param=")
-                                                            }
-                                                        },
-                                                        onFailure = {
-                                                            selectedReactionInfo = reactionInfo
-                                                            reactionParams.clear()
-                                                        }
-                                                    )
-                                                }
-                                            } else {
-                                                selectedReactionInfo = reactionInfo
-                                                reactionParams.clear()
-                                                reactionInfo.Parameters.forEach { param ->
-                                                    reactionParams.add("$param=")
-                                                }
+                                            reactionParams.clear()
+                                            reactionInfo.Parameters.forEach { param ->
+                                                reactionParams.add("$param=")
                                             }
                                         }
                                     )
@@ -709,13 +784,17 @@ fun EditWorkflowScreen(
                         Text("Reaction parameters", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         for ((index, param) in reactionParams.withIndex()) {
+                            val parts = param.split("=", limit = 2)
+                            val key = parts.getOrNull(0) ?: ""
+                            val value = parts.getOrNull(1) ?: ""
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text("$key:", modifier = Modifier.width(100.dp))
                                 OutlinedTextField(
-                                    value = param,
-                                    onValueChange = { v -> reactionParams[index] = v },
+                                    value = value,
+                                    onValueChange = { v -> reactionParams[index] = "$key=$v" },
                                     modifier = Modifier.weight(1f),
                                     singleLine = true,
-                                    placeholder = { Text("Ex: dawpitech/test-thingy") },
+                                    placeholder = { Text("Enter value") },
                                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
                                 )
                                 IconButton(onClick = { reactionParams.removeAt(index) }) {
@@ -749,7 +828,7 @@ fun EditWorkflowScreen(
                         loading = true
                         error = null
                         scope.launch {
-                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, active)
+                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, active, workflowName)
                             loading = false
                             res.fold(onSuccess = { wf -> onSaved(wf) }, onFailure = { e -> error = e.message ?: "Save failed" })
                         }

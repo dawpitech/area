@@ -1,4 +1,3 @@
-// kotlin
 package com.uwu.area
 
 import android.content.Intent

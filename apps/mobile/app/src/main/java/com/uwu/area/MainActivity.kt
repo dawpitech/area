@@ -22,7 +22,6 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Removed enableEdgeToEdge() to prevent content from being cut off on smaller screens
         setContent {
             AreaTheme {
                 AppContent()
@@ -35,7 +34,6 @@ class MainActivity : ComponentActivity() {
 fun AppContent() {
     val context = LocalContext.current
 
-    // Initialiser le singleton TokenStore une seule fois avec le contexte
     LaunchedEffect(Unit) { TokenStore.init(context) }
     val tokenStore = TokenStore
 
@@ -47,6 +45,7 @@ fun AppContent() {
     var email by remember { mutableStateOf<String?>(null) }
     var currentScreen by remember { mutableStateOf(Screen.HOME) }
     var isInitialized by remember { mutableStateOf(false) }
+    var workflowRefreshTrigger by remember { mutableStateOf(0) }
     var showCreate by remember { mutableStateOf(false) }
     var editWorkflow by remember { mutableStateOf<Workflow?>(null) }
     val scope = rememberCoroutineScope()
@@ -75,7 +74,6 @@ fun AppContent() {
     }
 
     if (token == null) {
-        // No drawer or top navigation while on the auth screens
         AuthHost(onAuthenticated = { receivedToken, receivedEmail ->
             token = receivedToken
             email = receivedEmail
@@ -193,6 +191,8 @@ fun AppContent() {
                                         onSaved = { updatedWorkflow ->
                                             // Close the edit form once the workflow has been successfully updated
                                             editWorkflow = null
+                                            // Refresh the workflow list
+                                            workflowRefreshTrigger++
                                         }
                                     )
                                 }
@@ -203,6 +203,8 @@ fun AppContent() {
                                         onSaved = { _ ->
                                             // Close the form once the workflow has been successfully created (HTTP 2xx)
                                             showCreate = false
+                                            // Refresh the workflow list
+                                            workflowRefreshTrigger++
                                         }
                                     )
                                 }
@@ -210,7 +212,8 @@ fun AppContent() {
                                     WorkflowListScreen(
                                         token = token,
                                         onOpenCreate = { showCreate = true },
-                                        onEdit = { workflow -> editWorkflow = workflow }
+                                        onEdit = { workflow -> editWorkflow = workflow },
+                                        refreshTrigger = workflowRefreshTrigger
                                     )
                                 }
                             }

@@ -33,7 +33,6 @@ fun NavigationBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Place the menu button on the left so it visually matches the left-side drawer
             IconButton(
                 onClick = onMenuClick
             ) {

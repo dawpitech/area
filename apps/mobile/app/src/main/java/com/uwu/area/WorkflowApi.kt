@@ -11,6 +11,10 @@ import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
+private fun JSONObject.getWorkflowId(): Int {
+    return optInt("ID", optInt("WorkflowID", 0))
+}
+
 suspend fun fetchWorkflows(token: String? = null): Result<List<Workflow>> {
     return withContext(Dispatchers.IO) {
         try {
@@ -30,23 +34,35 @@ suspend fun fetchWorkflows(token: String? = null): Result<List<Workflow>> {
             Log.d("WorkflowApi", "GET ${ApiRoutes.WORKFLOWS} -> code=$code resp=$respText")
 
             if (code in 200..299) {
-                val arr = JSONArray(respText)
                 val list = mutableListOf<Workflow>()
-                for (i in 0 until arr.length()) {
+                if (respText.trim() != "null" && respText.trim() != "") {
                     try {
-                        val jo = arr.getJSONObject(i)
-                        val actionParams = jsonObjectToList(jo.optJSONObject("ActionParameters"))
-                        val reactionParams = jsonObjectToList(jo.optJSONObject("ReactionParameters"))
-                        val wp = Workflow(
-                            jo.optInt("ID"),
-                            jo.optString("ActionName", ""),
-                            actionParams,
-                            jo.optString("ReactionName", ""),
-                            reactionParams,
-                            jo.optBoolean("Active", true)
-                        )
-                        list.add(wp)
-                    } catch (_: Exception) { }
+                        val arr = JSONArray(respText)
+                        Log.d("WorkflowApi", "Parsing ${arr.length()} workflows from: $respText")
+                        for (i in 0 until arr.length()) {
+                            try {
+                                val jo = arr.getJSONObject(i)
+                                val workflowId = jo.getWorkflowId()
+                                val workflowName = jo.optString("Name", "")
+                                val workflowActive = jo.optBoolean("Active", false)
+                                Log.d("WorkflowApi", "Parsed workflow $i: ID=$workflowId, Name='$workflowName', Active=$workflowActive")
+                                val wp = Workflow(
+                                    ID = workflowId,
+                                    Name = workflowName,
+                                    ActionName = "", // Will be loaded on demand
+                                    ActionParameters = emptyList(),
+                                    ReactionName = "", // Will be loaded on demand
+                                    ReactionParameters = emptyList(),
+                                    Active = workflowActive
+                                )
+                                list.add(wp)
+                            } catch (e: Exception) {
+                                Log.e("WorkflowApi", "Failed to parse workflow $i", e)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w("WorkflowApi", "Failed to parse workflow array: $respText", e)
+                    }
                 }
                 Result.success(list)
             } else {
@@ -61,10 +77,12 @@ suspend fun fetchWorkflows(token: String? = null): Result<List<Workflow>> {
 
 suspend fun createWorkflowApi(
     token: String? = null,
+    workflowName: String,
     actionName: String,
     actionParams: List<String>,
     reactionName: String,
-    reactionParams: List<String>
+    reactionParams: List<String>,
+    active: Boolean = true
 ): Result<Workflow> {
     return withContext(Dispatchers.IO) {
         try {
@@ -78,7 +96,9 @@ suspend fun createWorkflowApi(
                 readTimeout = 5000
             }
 
-            val createBody = JSONObject().toString()
+            val createBody = JSONObject().apply {
+                put("Active", active)
+            }.toString()
 
             createConn.outputStream.use { os: OutputStream ->
                 os.write(createBody.toByteArray(Charsets.UTF_8))
@@ -97,17 +117,37 @@ suspend fun createWorkflowApi(
             }
 
             val createJo = JSONObject(createRespText)
-            val workflowId = createJo.optInt("ID", -1)
+            val workflowId = createJo.getWorkflowId()
+            Log.d("WorkflowApi", "Created workflow with ID: $workflowId")
             if (workflowId == -1) {
                 return@withContext Result.failure(Exception("Failed to get workflow ID from create response"))
             }
 
+            // Parse the created workflow from the response
+            val name = createJo.optString("Name", "")
+            val actionNameFromResponse = createJo.optString("ActionName", "")
+            val reactionNameFromResponse = createJo.optString("ReactionName", "")
+            // Use the active parameter passed to the function, not from response
+
+            val createdWorkflow = Workflow(
+                ID = workflowId,
+                Name = name,
+                ActionName = actionNameFromResponse,
+                ActionParameters = emptyList(), // Will be updated
+                ReactionName = reactionNameFromResponse,
+                ReactionParameters = emptyList(), // Will be updated
+                Active = active
+            )
+
+            // Check syntax before updating
             val checkResult = checkWorkflowApi(actionName, actionParams, reactionName, reactionParams)
             if (checkResult.isFailure) {
                 return@withContext Result.failure(checkResult.exceptionOrNull() ?: Exception("Workflow check failed"))
             }
 
-            val updateResult = updateWorkflowApi(token, workflowId, actionName, actionParams, reactionName, reactionParams, true)
+            // Update with actual parameters
+            Log.d("WorkflowApi", "Updating workflow $workflowId with name='$workflowName', action='$actionName', reaction='$reactionName'")
+            val updateResult = updateWorkflowApi(token, workflowId, actionName, actionParams, reactionName, reactionParams, active, workflowName)
             updateResult.fold(
                 onSuccess = { updatedWorkflow ->
                     Result.success(updatedWorkflow)
@@ -165,8 +205,10 @@ suspend fun updateWorkflowApi(
     actionParams: List<String>,
     reactionName: String,
     reactionParams: List<String>,
-    active: Boolean = true
+    active: Boolean = true,
+    name: String = ""
 ): Result<Workflow> {
+    Log.d("WorkflowApi", "updateWorkflowApi called with id=$id, name='$name', action='$actionName', reaction='$reactionName'")
     return withContext(Dispatchers.IO) {
         try {
             val checkResult = checkWorkflowApi(actionName, actionParams, reactionName, reactionParams)
@@ -190,6 +232,9 @@ suspend fun updateWorkflowApi(
                 put("ReactionName", reactionName)
                 put("ReactionParameters", listToJSONObject(reactionParams))
                 put("Active", active)
+                if (name.isNotBlank()) {
+                    put("Name", name)
+                }
             }.toString()
 
             conn.outputStream.use { os: OutputStream ->
@@ -209,12 +254,13 @@ suspend fun updateWorkflowApi(
                 val actionParams = jsonObjectToList(jo.optJSONObject("ActionParameters"))
                 val reactionParams = jsonObjectToList(jo.optJSONObject("ReactionParameters"))
                 val wf = Workflow(
-                    jo.optInt("ID"),
-                    jo.optString("ActionName", actionName),
-                    actionParams,
-                    jo.optString("ReactionName", ""),
-                    reactionParams,
-                    jo.optBoolean("Active", true)
+                    ID = jo.getWorkflowId(),
+                    Name = jo.optString("Name", ""),
+                    ActionName = jo.optString("ActionName", actionName),
+                    ActionParameters = actionParams,
+                    ReactionName = jo.optString("ReactionName", ""),
+                    ReactionParameters = reactionParams,
+                    Active = jo.optBoolean("Active", true)
                 )
                 Result.success(wf)
             } else {
@@ -317,6 +363,55 @@ suspend fun checkWorkflowApi(
             }
         } catch (e: Exception) {
             Log.e("WorkflowApi", "checkWorkflowApi error", e)
+            Result.failure(e)
+        }
+    }
+}
+
+suspend fun getWorkflowDetails(token: String? = null, workflowId: Int): Result<Workflow> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL(ApiRoutes.BASE + ApiRoutes.WORKFLOWS + "$workflowId")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                if (!token.isNullOrBlank()) setRequestProperty("Authorization", "Bearer $token")
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val code = conn.responseCode
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "GET ${ApiRoutes.WORKFLOWS}$workflowId -> code=$code resp=$respText")
+
+            if (code in 200..299) {
+                val jo = JSONObject(respText)
+                val workflowId = jo.getWorkflowId()
+                val workflowName = jo.optString("Name", "")
+                val actionName = jo.optString("ActionName", "")
+                val reactionName = jo.optString("ReactionName", "")
+                val active = jo.optBoolean("Active", false)
+                Log.d("WorkflowApi", "getWorkflowDetails for ID $workflowId returned: Name='$workflowName', Action='$actionName', Reaction='$reactionName', Active=$active")
+
+                val actionParams = jsonObjectToList(jo.optJSONObject("ActionParameters"))
+                val reactionParams = jsonObjectToList(jo.optJSONObject("ReactionParameters"))
+                val workflow = Workflow(
+                    ID = workflowId,
+                    Name = workflowName,
+                    ActionName = actionName,
+                    ActionParameters = actionParams,
+                    ReactionName = reactionName,
+                    ReactionParameters = reactionParams,
+                    Active = active
+                )
+                Result.success(workflow)
+            } else {
+                Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("WorkflowApi", "getWorkflowDetails error", e)
             Result.failure(e)
         }
     }
