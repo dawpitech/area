@@ -48,7 +48,7 @@ func TriggerLaunchAtJob(ctx models.TriggerContext) error {
 func RemoveLaunchNewCronJob(ctx models.TriggerContext) error {
 	err := scheduler.RemoveJob(workflowJobUUID[ctx.WorkflowID])
 	if err != nil {
-		return errors.New("Removal of given job resulted in an error")
+		return errors.New("Removal of given job resulted in an error. Err " + err.Error())
 	}
 	delete(workflowJobUUID, ctx.WorkflowID)
 	return nil

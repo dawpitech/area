@@ -99,7 +99,7 @@ func DisableWorkflowTrigger(workflow models.Workflow) (error, bool) {
 
 	err := services.ActionStore[workflow.ActionName].RemoveTrigger(context)
 	if err != nil {
-		return errors.New("Removal of trigger failed, please re-try later."), false
+		return errors.New("Removal of trigger failed, please re-try later. Err: " + err.Error()), false
 	}
 	return nil, true
 }
