@@ -4,6 +4,7 @@ import (
 	"dawpitech/area/middlewares"
 	"dawpitech/area/models"
 	"dawpitech/area/services/github"
+	"dawpitech/area/services/placeholder"
 	"dawpitech/area/services/timer"
 	"fmt"
 	"github.com/loopfz/gadgeto/tonic"
@@ -15,6 +16,7 @@ import (
 var Services = []models.Service{
 	github.Provider,
 	timer.Provider,
+	placeholder.Provider,
 }
 
 var ActionStore = make(map[string]models.Action)

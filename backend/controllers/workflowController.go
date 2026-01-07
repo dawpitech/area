@@ -40,9 +40,9 @@ func CreateNewWorkflow(c *gin.Context) (*models.Workflow, error) {
 
 	workflow := models.Workflow{
 		OwnerUserID:        user.ID,
-		ActionName:         "",
+		ActionName:         "action_none",
 		ActionParameters:   nil,
-		ReactionName:       "",
+		ReactionName:       "reaction_none",
 		ReactionParameters: nil,
 		Active:             false,
 	}
