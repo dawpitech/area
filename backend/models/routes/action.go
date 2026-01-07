@@ -10,3 +10,7 @@ type ResponseGetActionInfo struct {
 	Description string
 	Parameters  []string
 }
+
+type GetAllActionResponse struct {
+	ActionsName []string
+}

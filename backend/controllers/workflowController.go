@@ -76,6 +76,37 @@ func CheckWorkflow(_ *gin.Context, in *routes.CheckWorkflowRequest) (*routes.Che
 	}
 }
 
+func DeleteWorkflow(c *gin.Context, in *routes.WorkflowID) error {
+	maybeUser, ok := c.Get("user")
+	if !ok {
+		return errors.BadRequest
+	}
+
+	user, ok := utils.MaybeGetUser(maybeUser)
+	if !ok {
+		return errors.BadRequest
+	}
+
+	var workflow models.Workflow
+	if rst := initializers.DB.First(&workflow).Where("id=?", in.WorkflowID); rst.Error != nil {
+		return errors.New("No workflow found with the given ID.")
+	}
+
+	if workflow.OwnerUserID != user.ID {
+		return errors.Unauthorized
+	}
+
+	if workflow.Active {
+		if err, ok := engine.DisableWorkflowTrigger(workflow); !ok {
+			log.Print(err.Error())
+			return err
+		}
+	}
+
+	initializers.DB.Delete(&workflow)
+	return nil
+}
+
 func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*models.Workflow, error) {
 	maybeUser, ok := c.Get("user")
 	if !ok {

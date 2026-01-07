@@ -10,3 +10,7 @@ type ResponseGetReactionInfo struct {
 	Description string
 	Parameters  []string
 }
+
+type GetAllReactionResponse struct {
+	ReactionsName []string
+}

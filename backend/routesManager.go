@@ -26,7 +26,8 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		tonic.Handler(controllers.LoginUser, 200),
 	)
 
-	fizzRouter.GET(
+	miscRoutes := fizzRouter.Group("/", "Misc", "WIP")
+	miscRoutes.GET(
 		"/about.json",
 		[]fizz.OperationOption{
 			fizz.Summary("Retrieve about.json"),
@@ -53,12 +54,19 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		middlewares.CheckAuth,
 		tonic.Handler(controllers.CreateNewWorkflow, 200),
 	)
-	workflowRoutes.PUT(
+	workflowRoutes.POST(
 		"/check",
 		[]fizz.OperationOption{
 			fizz.Summary("Check the syntax validity of the given workflow"),
 		},
 		tonic.Handler(controllers.CheckWorkflow, 200),
+	)
+	workflowRoutes.DELETE(
+		"/:id",
+		[]fizz.OperationOption{
+			fizz.Summary("Delete a workflow"),
+		},
+		tonic.Handler(controllers.DeleteWorkflow, 200),
 	)
 	workflowRoutes.GET(
 		"/:id",
@@ -81,6 +89,13 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 
 	actionsRoutes := fizzRouter.Group("/action", "Actions details", "WIP")
 	actionsRoutes.GET(
+		"/",
+		[]fizz.OperationOption{
+			fizz.Summary("Get the list of all actions"),
+		},
+		tonic.Handler(controllers.GetAllAction, 200),
+	)
+	actionsRoutes.GET(
 		"/:name",
 		[]fizz.OperationOption{
 			fizz.Summary("Get details about an action"),
@@ -88,7 +103,14 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		tonic.Handler(controllers.GetActionInfo, 200),
 	)
 
-	reactionsRoutes := fizzRouter.Group("/reaction", "Actions details", "WIP")
+	reactionsRoutes := fizzRouter.Group("/reaction", "Reactions details", "WIP")
+	reactionsRoutes.GET(
+		"/",
+		[]fizz.OperationOption{
+			fizz.Summary("Get the list of all reactions"),
+		},
+		tonic.Handler(controllers.GetAllReaction, 200),
+	)
 	reactionsRoutes.GET(
 		"/:name",
 		[]fizz.OperationOption{
@@ -110,7 +132,7 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 	infos := &openapi.Info{
 		Title:       "Area API",
 		Description: "TODO",
-		Version:     "0.1.0",
+		Version:     "0.2.0",
 	}
 	fizzRouter.GET("/openapi.json", nil, fizzRouter.OpenAPI(infos, "json"))
 

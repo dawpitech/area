@@ -8,6 +8,14 @@ import (
 	"log"
 )
 
+func GetAllAction(_ *gin.Context) (*routes.GetAllActionResponse, error) {
+	var response routes.GetAllActionResponse
+	for i := 0; i < len(services.ActionList); i++ {
+		response.ActionsName = append(response.ActionsName, services.ActionList[i].Name)
+	}
+	return &response, nil
+}
+
 func GetActionInfo(_ *gin.Context, in *routes.RequestGetActionInfo) (*routes.ResponseGetActionInfo, error) {
 	action, ok := services.ActionStore[in.ActionName]
 	if !ok {
