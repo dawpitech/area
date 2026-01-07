@@ -1,6 +1,7 @@
 package timer
 
 import (
+	logEngine "dawpitech/area/engines/logEngine"
 	"dawpitech/area/models"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/juju/errors"
@@ -60,17 +61,19 @@ func TriggerLaunchNewCronJob(ctx models.TriggerContext) error {
 		gocron.CronJob(crontab, false),
 		gocron.NewTask(
 			func() {
-				log.Println("Running")
+				log.Printf("Workflow #%d was triggered.\n", ctx.WorkflowID)
 				err := ctx.ReactionHandler(ctx.ReactionContext)
 				if err != nil {
-					log.Print(err.Error())
+					logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, err.Error())
+				} else {
+					logEngine.NewLogEntry(ctx.WorkflowID, models.InfoLog, "Workflow execution was successful.")
 				}
 			},
 		),
 	)
 
 	if err != nil {
-		return errors.New("Set-up of the cron-job failed, please re-try later.")
+		return errors.New("Set-up of the cron-job failed, please re-try later. Err: " + err.Error())
 	}
 	workflowJobUUID[ctx.WorkflowID] = job.ID()
 

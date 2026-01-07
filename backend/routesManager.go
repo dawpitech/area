@@ -123,6 +123,15 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		tonic.Handler(controllers.GetReactionInfo, 200),
 	)
 
+	logsRoutes := fizzRouter.Group("/logs", "Logs engine", "WIP")
+	logsRoutes.GET(
+		"/workflow/:id",
+		[]fizz.OperationOption{
+			fizz.Summary("Retrieve logs for a workflow"),
+		},
+		tonic.Handler(controllers.GetAllLogsByWorkflow, 200),
+	)
+
 	fizzRouter.Generator().SetSecuritySchemes(map[string]*openapi.SecuritySchemeOrRef{
 		"bearerAuth": {
 			SecurityScheme: &openapi.SecurityScheme{

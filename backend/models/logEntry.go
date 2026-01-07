@@ -10,11 +10,13 @@ type LogType int
 const (
 	ErrorLog = iota
 	WarnLog
+	InfoLog
 )
 
 var LogTypeName = map[LogType]string{
 	ErrorLog: "error",
 	WarnLog:  "warn",
+	InfoLog:  "info",
 }
 
 func (logType LogType) String() string {
@@ -28,4 +30,10 @@ type LogEntry struct {
 	Timestamp   time.Time
 	Type        string
 	Message     string
+}
+
+type PublicLogEntry struct {
+	Timestamp time.Time
+	Type      string
+	Message   string
 }
