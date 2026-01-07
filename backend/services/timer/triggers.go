@@ -56,7 +56,7 @@ func RemoveLaunchNewCronJob(ctx models.TriggerContext) error {
 
 func TriggerLaunchNewCronJob(ctx models.TriggerContext) error {
 	crontab := ctx.ActionParameters["cron"]
-	_, err := scheduler.NewJob(
+	job, err := scheduler.NewJob(
 		gocron.CronJob(crontab, false),
 		gocron.NewTask(
 			func() {
@@ -72,7 +72,7 @@ func TriggerLaunchNewCronJob(ctx models.TriggerContext) error {
 	if err != nil {
 		return errors.New("Set-up of the cron-job failed, please re-try later.")
 	}
+	workflowJobUUID[ctx.WorkflowID] = job.ID()
 
 	return nil
-
 }
