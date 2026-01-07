@@ -53,6 +53,13 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		middlewares.CheckAuth,
 		tonic.Handler(controllers.CreateNewWorkflow, 200),
 	)
+	workflowRoutes.PUT(
+		"/check",
+		[]fizz.OperationOption{
+			fizz.Summary("Check the syntax validity of the given workflow"),
+		},
+		tonic.Handler(controllers.CheckWorkflow, 200),
+	)
 	workflowRoutes.GET(
 		"/:id",
 		[]fizz.OperationOption{

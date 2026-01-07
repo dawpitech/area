@@ -52,6 +52,30 @@ func CreateNewWorkflow(c *gin.Context) (*models.Workflow, error) {
 	return &workflow, nil
 }
 
+func CheckWorkflow(_ *gin.Context, in *routes.CheckWorkflowRequest) (*routes.CheckWorkflowResponse, error) {
+	workflow := models.Workflow{
+		//OwnerUserID:        0,
+		ActionName:         in.ActionName,
+		ActionParameters:   in.ActionParameters,
+		ReactionName:       in.ReactionName,
+		ReactionParameters: in.ReactionParameters,
+		//Active:             false,
+	}
+
+	err, ok := engine.ValidateWorkflow(workflow)
+	if !ok {
+		return &routes.CheckWorkflowResponse{
+			SyntaxValid: false,
+			Error:       err.Error(),
+		}, nil
+	} else {
+		return &routes.CheckWorkflowResponse{
+			SyntaxValid: true,
+			Error:       "",
+		}, nil
+	}
+}
+
 func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*models.Workflow, error) {
 	maybeUser, ok := c.Get("user")
 	if !ok {

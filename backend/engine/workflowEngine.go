@@ -14,6 +14,30 @@ type WorkflowEngine struct {
 	ActionTriggered     chan uint
 }
 
+func ValidateWorkflow(workflow models.Workflow) (error, bool) {
+	action, actPresent := services.ActionStore[workflow.ActionName]
+	if !actPresent {
+		return errors.New("Provided action doesnt exist."), false
+	}
+	reaction, reaPresent := services.ReactionStore[workflow.ReactionName]
+	if !reaPresent {
+		return errors.New("Provided reaction doesnt exist."), false
+	}
+	for i := 0; i < len(action.Parameters); i++ {
+		_, ok := workflow.ActionParameters[action.Parameters[i]]
+		if !ok {
+			return errors.New("Not enough parameters given to chosen action."), false
+		}
+	}
+	for i := 0; i < len(reaction.Parameters); i++ {
+		_, ok := workflow.ReactionParameters[reaction.Parameters[i]]
+		if !ok {
+			return errors.New("Not enough parameters given to chosen reaction."), false
+		}
+	}
+	return nil, true
+}
+
 func SetupWorkflowTrigger(workflow models.Workflow) (error, bool) {
 	context := models.TriggerContext{
 		OwnerUserID:      workflow.OwnerUserID,
