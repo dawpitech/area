@@ -1,4 +1,4 @@
-package engines
+package logEngine
 
 import (
 	"context"
@@ -19,7 +19,7 @@ func NewLogEntry(workflowID uint, logType models.LogType, msg string) {
 			log.Print("Couldn't load workflow to write log entry. Err: " + err.Error())
 		}
 	}
-
+ 
 	entry := models.LogEntry{
 		WorkflowID:  workflowID,
 		OwnerUserID: workflow.OwnerUserID,
