@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +26,15 @@ import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import android.util.Log
 import kotlin.text.set
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 data class Workflow(
     val ID: Int? = null,
@@ -42,8 +52,10 @@ fun WorkflowListScreen(
     onOpenCreate: () -> Unit,
     onEdit: (Workflow) -> Unit = {},
     onDeleted: (Int) -> Unit = {},
+    onShowLogs: (Workflow) -> Unit = {},
     refreshTrigger: Int = 0
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var workflows by remember { mutableStateOf<List<Workflow>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
@@ -92,10 +104,8 @@ fun WorkflowListScreen(
                                             val workflowId = wf.ID
                                             if (workflowId != null) {
                                                 scope.launch {
-                                                    // Get full workflow details first
                                                     getWorkflowDetails(token, workflowId).fold(
                                                         onSuccess = { fullWorkflow ->
-                                                            // Update with new active status
                                                             updateWorkflowApi(
                                                                 token, workflowId,
                                                                 fullWorkflow.ActionName,
@@ -106,9 +116,7 @@ fun WorkflowListScreen(
                                                                 fullWorkflow.Name
                                                             ).fold(
                                                                 onSuccess = { updatedWorkflow ->
-                                                                    // Debug logging
                                                                     println("Updating workflow ${workflowId}: old name='${wf.Name}', new name='${updatedWorkflow.Name}'")
-                                                                    // Update local list - find by index to be more reliable
                                                                     val index = workflows.indexOfFirst { it.ID == workflowId }
                                                                     if (index != -1) {
                                                                         val newList = workflows.toMutableList()
@@ -119,15 +127,26 @@ fun WorkflowListScreen(
                                                                         println("Could not find workflow with ID $workflowId in list")
                                                                     }
                                                                 },
-                                                                onFailure = { e -> error = e.message ?: "Update failed" }
+                                                                onFailure = { e ->
+                                                                    val errorMsg = e.message ?: "Update failed"
+                                                                    error = errorMsg
+                                                                    Toast.makeText(context, "Failed to update workflow: $errorMsg", Toast.LENGTH_LONG).show()
+                                                                }
                                                             )
                                                         },
-                                                        onFailure = { e -> error = e.message ?: "Failed to get workflow details" }
+                                                        onFailure = { e ->
+                                                            val errorMsg = e.message ?: "Failed to get workflow details"
+                                                            error = errorMsg
+                                                            Toast.makeText(context, "Failed to load workflow details: $errorMsg", Toast.LENGTH_LONG).show()
+                                                        }
                                                     )
                                                 }
                                             }
                                         }
                                     )
+                                IconButton(onClick = { onShowLogs(wf) }) {
+                                    Icon(Icons.Default.BugReport, contentDescription = "View Logs")
+                                }
                                 IconButton(onClick = {
                                     val workflowId: Int? = wf.ID
                                     if (workflowId != null) {
@@ -135,7 +154,6 @@ fun WorkflowListScreen(
                                             try {
                                                 val res = deleteWorkflowApi(token, workflowId)
                                                 res.fold(onSuccess = {
-                                                    // Use index-based removal for reliability
                                                     val index = workflows.indexOfFirst { it.ID == workflowId }
                                                     if (index != -1) {
                                                         val newList = workflows.toMutableList()
@@ -145,11 +163,15 @@ fun WorkflowListScreen(
                                                         onDeleted(workflowId) // Call the callback after successful deletion
                                                     }
                                                 }, onFailure = { e ->
-                                                    error = e.message ?: "Delete failed"
+                                                    val errorMsg = e.message ?: "Delete failed"
+                                                    error = errorMsg
+                                                    Toast.makeText(context, "Failed to delete workflow: $errorMsg", Toast.LENGTH_LONG).show()
                                                     Log.e("WorkflowScreens", "Failed to delete workflow $workflowId", e)
                                                 })
                                             } catch (e: Exception) {
-                                                error = "Unexpected error during delete"
+                                                val errorMsg = "Unexpected error during delete"
+                                                error = errorMsg
+                                                Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
                                                 Log.e("WorkflowScreens", "Unexpected error deleting workflow $workflowId", e)
                                             }
                                         }
@@ -206,7 +228,6 @@ fun CreateWorkflowScreen(
         actionsLoading = true
         reactionsLoading = true
 
-        // Load all action details upfront
         scope.launch {
             val actionInfos = mutableListOf<ActionInfo>()
             getAllActions().fold(
@@ -215,7 +236,6 @@ fun CreateWorkflowScreen(
                         getActionInfo(actionName).fold(
                             onSuccess = { info -> actionInfos.add(info) },
                             onFailure = {
-                                // Fallback: create minimal info if API fails
                                 actionInfos.add(ActionInfo(actionName, actionName, "", emptyList()))
                             }
                         )
@@ -226,13 +246,11 @@ fun CreateWorkflowScreen(
             availableActionInfos = actionInfos
             actionsLoading = false
 
-            // Set selected action info if editing
             if (actionName.isNotBlank()) {
                 selectedActionInfo = actionInfos.find { it.Name == actionName }
             }
         }
 
-        // Load all reaction details upfront
         scope.launch {
             val reactionInfos = mutableListOf<ReactionInfo>()
             getAllReactions().fold(
@@ -241,7 +259,6 @@ fun CreateWorkflowScreen(
                         getReactionInfo(reactionName).fold(
                             onSuccess = { info -> reactionInfos.add(info) },
                             onFailure = {
-                                // Fallback: create minimal info if API fails
                                 reactionInfos.add(ReactionInfo(reactionName, reactionName, "", emptyList()))
                             }
                         )
@@ -252,7 +269,6 @@ fun CreateWorkflowScreen(
             availableReactionInfos = reactionInfos
             reactionsLoading = false
 
-            // Set selected reaction info if editing
             if (reactionName.isNotBlank()) {
                 selectedReactionInfo = reactionInfos.find { it.Name == reactionName }
             }
@@ -304,7 +320,6 @@ fun CreateWorkflowScreen(
                 .padding(16.dp)
                 .verticalScroll(scrollState)) {
 
-                // Workflow Name and Active Status
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text("Workflow Settings", style = MaterialTheme.typography.titleMedium)
@@ -500,6 +515,196 @@ fun CreateWorkflowScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun WorkflowLogsScreen(
+    token: String?,
+    workflowId: Int,
+    workflowName: String,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var logs by remember { mutableStateOf<List<LogEntry>>(emptyList()) }
+    var loading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(workflowId) {
+        loading = true
+        fetchWorkflowLogs(token, workflowId).fold(onSuccess = { logList ->
+            logs = logList.sortedByDescending { parseTimestamp(it.Timestamp) }
+            loading = false
+        }, onFailure = { e ->
+            error = e.message ?: "Error loading logs"
+            loading = false
+        })
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("Workflow Logs")
+                        Text(
+                            text = workflowName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            if (loading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (error != null) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.Error,
+                        contentDescription = "Error",
+                        tint = Color(0xFFFF6B6B),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = error!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Black,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            } else if (logs.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = "No logs",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No logs available for this workflow",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(logs) { log ->
+                        LogEntryCard(log)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LogEntryCard(log: LogEntry) {
+    val (backgroundColor, icon, iconTint, textColor) = when (log.Type.lowercase()) {
+        "error" -> Quad(Color(0xFFFFEBEE), Icons.Default.Error, Color(0xFFD32F2F), Color.Black)
+        "warn", "warning" -> Quad(Color(0xFFFFF8E1), Icons.Default.Warning, Color(0xFFF57C00), Color.Black)
+        "info" -> Quad(Color(0xFFE3F2FD), Icons.Default.Info, Color(0xFF1976D2), Color.Black)
+        else -> Quad(Color(0xFFF5F5F5), Icons.Default.Info, Color(0xFF757575), Color.Black)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                icon,
+                contentDescription = log.Type,
+                tint = iconTint,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = log.Message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textColor,
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = formatTimestamp(log.Timestamp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+    }
+}
+
+private data class Quad<out A, out B, out C, out D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D
+)
+
+private fun parseTimestamp(timestamp: String): Long {
+    return try {
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        sdf.parse(timestamp)?.time ?: 0L
+    } catch (e: Exception) {
+        try {
+            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.getDefault())
+            sdf.parse(timestamp.replace("T", " "))?.time ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
+    }
+}
+
+private fun formatTimestamp(timestamp: String): String {
+    return try {
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+        val date = sdf.parse(timestamp)
+        val outputFormat = SimpleDateFormat("MMM dd, HH:mm:ss", Locale.getDefault())
+        date?.let { outputFormat.format(it) } ?: timestamp
+    } catch (e: Exception) {
+        try {
+            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.getDefault())
+            val date = sdf.parse(timestamp.replace("T", " "))
+            val outputFormat = SimpleDateFormat("MMM dd, HH:mm:ss", Locale.getDefault())
+            date?.let { outputFormat.format(it) } ?: timestamp
+        } catch (e: Exception) {
+            timestamp // Return original if parsing fails
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun EditWorkflowScreen(
     token: String?,
     workflow: Workflow,
@@ -532,16 +737,13 @@ fun EditWorkflowScreen(
         actionsLoading = true
         reactionsLoading = true
 
-        // First, fetch full workflow details if we don't have them
         scope.launch {
             if (workflow.ActionName.isBlank() || workflow.ReactionName.isBlank()) {
-                // Need to fetch full details
                 workflow.ID?.let { id ->
                     Log.d("WorkflowScreens", "Editing workflow with ID $id, initial name '${workflow.Name}'")
                     getWorkflowDetails(token, id).fold(
                         onSuccess = { fullWorkflow ->
                             Log.d("WorkflowScreens", "getWorkflowDetails returned: ID=${fullWorkflow.ID}, Name='${fullWorkflow.Name}'")
-                            // Update our local state with full details
                             workflowName = fullWorkflow.Name
                             actionName = fullWorkflow.ActionName
                             reactionName = fullWorkflow.ReactionName
@@ -649,7 +851,6 @@ fun EditWorkflowScreen(
                 .padding(16.dp)
                 .verticalScroll(scrollState)) {
 
-                // Workflow Name
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text("Workflow Settings", style = MaterialTheme.typography.titleMedium)

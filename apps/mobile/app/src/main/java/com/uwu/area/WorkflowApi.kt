@@ -123,11 +123,9 @@ suspend fun createWorkflowApi(
                 return@withContext Result.failure(Exception("Failed to get workflow ID from create response"))
             }
 
-            // Parse the created workflow from the response
             val name = createJo.optString("Name", "")
             val actionNameFromResponse = createJo.optString("ActionName", "")
             val reactionNameFromResponse = createJo.optString("ReactionName", "")
-            // Use the active parameter passed to the function, not from response
 
             val createdWorkflow = Workflow(
                 ID = workflowId,
@@ -139,13 +137,11 @@ suspend fun createWorkflowApi(
                 Active = active
             )
 
-            // Check syntax before updating
             val checkResult = checkWorkflowApi(actionName, actionParams, reactionName, reactionParams)
             if (checkResult.isFailure) {
                 return@withContext Result.failure(checkResult.exceptionOrNull() ?: Exception("Workflow check failed"))
             }
 
-            // Update with actual parameters
             Log.d("WorkflowApi", "Updating workflow $workflowId with name='$workflowName', action='$actionName', reaction='$reactionName'")
             val updateResult = updateWorkflowApi(token, workflowId, actionName, actionParams, reactionName, reactionParams, active, workflowName)
             updateResult.fold(
@@ -509,6 +505,12 @@ data class ReactionInfo(
     val Parameters: List<String>
 )
 
+data class LogEntry(
+    val Message: String,
+    val Timestamp: String,
+    val Type: String
+)
+
 suspend fun getActionInfo(actionName: String): Result<ActionInfo> {
     return withContext(Dispatchers.IO) {
         try {
@@ -576,6 +578,61 @@ suspend fun getReactionInfo(reactionName: String): Result<ReactionInfo> {
             }
         } catch (e: Exception) {
             Log.e("WorkflowApi", "getReactionInfo error", e)
+            Result.failure(e)
+        }
+    }
+}
+
+suspend fun fetchWorkflowLogs(token: String? = null, workflowId: Int): Result<List<LogEntry>> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL(ApiRoutes.BASE + ApiRoutes.WORKFLOW_LOGS + workflowId)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                if (!token.isNullOrBlank()) setRequestProperty("Authorization", "Bearer $token")
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val code = conn.responseCode
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "GET ${ApiRoutes.WORKFLOW_LOGS}$workflowId -> code=$code resp=$respText")
+
+            if (code in 200..299) {
+                val logs = mutableListOf<LogEntry>()
+                if (respText.trim() != "null" && respText.trim() != "") {
+                    try {
+                        val jo = JSONObject(respText)
+                        val arr = jo.optJSONArray("Logs")
+                        if (arr != null) {
+                            Log.d("WorkflowApi", "Parsing ${arr.length()} logs from: $respText")
+                            for (i in 0 until arr.length()) {
+                                try {
+                                    val logJo = arr.getJSONObject(i)
+                                    val log = LogEntry(
+                                        Message = logJo.optString("Message", ""),
+                                        Timestamp = logJo.optString("Timestamp", ""),
+                                        Type = logJo.optString("Type", "")
+                                    )
+                                    logs.add(log)
+                                } catch (e: Exception) {
+                                    Log.e("WorkflowApi", "Failed to parse log $i", e)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.w("WorkflowApi", "Failed to parse logs response: $respText", e)
+                    }
+                }
+                Result.success(logs)
+            } else {
+                Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("WorkflowApi", "fetchWorkflowLogs error", e)
             Result.failure(e)
         }
     }

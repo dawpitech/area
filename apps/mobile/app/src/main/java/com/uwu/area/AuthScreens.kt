@@ -392,9 +392,7 @@ suspend fun getJson(path: String, token: String? = null): Result<String> {
 suspend fun fetchGithubInit(token: String? = null, redirectUri: String? = null): Result<String> {
     return withContext(Dispatchers.IO) {
         try {
-            val query = "?platform=mobile";//if (!redirectUri.isNullOrBlank()) {
-                //"?redirect_uri=" + URLEncoder.encode(redirectUri, "UTF-8")
-            //} else ""
+            val query = "?platform=mobile"
             val url = URL(ApiRoutes.BASE + ApiRoutes.GITHUB_INIT + query)
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"

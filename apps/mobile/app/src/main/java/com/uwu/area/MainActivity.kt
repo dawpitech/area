@@ -48,6 +48,7 @@ fun AppContent() {
     var workflowRefreshTrigger by remember { mutableStateOf(0) }
     var showCreate by remember { mutableStateOf(false) }
     var editWorkflow by remember { mutableStateOf<Workflow?>(null) }
+    var showLogsWorkflow by remember { mutableStateOf<Workflow?>(null) }
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
@@ -189,11 +190,17 @@ fun AppContent() {
                                         workflow = editWorkflow!!,
                                         onClose = { editWorkflow = null },
                                         onSaved = { updatedWorkflow ->
-                                            // Close the edit form once the workflow has been successfully updated
                                             editWorkflow = null
-                                            // Refresh the workflow list
                                             workflowRefreshTrigger++
                                         }
+                                    )
+                                }
+                                showLogsWorkflow != null -> {
+                                    WorkflowLogsScreen(
+                                        token = token,
+                                        workflowId = showLogsWorkflow!!.ID!!,
+                                        workflowName = showLogsWorkflow!!.Name,
+                                        onDismiss = { showLogsWorkflow = null }
                                     )
                                 }
                                 showCreate -> {
@@ -201,9 +208,7 @@ fun AppContent() {
                                         token = token,
                                         onClose = { showCreate = false },
                                         onSaved = { _ ->
-                                            // Close the form once the workflow has been successfully created (HTTP 2xx)
                                             showCreate = false
-                                            // Refresh the workflow list
                                             workflowRefreshTrigger++
                                         }
                                     )
@@ -213,6 +218,7 @@ fun AppContent() {
                                         token = token,
                                         onOpenCreate = { showCreate = true },
                                         onEdit = { workflow -> editWorkflow = workflow },
+                                        onShowLogs = { workflow -> showLogsWorkflow = workflow },
                                         refreshTrigger = workflowRefreshTrigger
                                     )
                                 }
