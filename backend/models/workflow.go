@@ -6,8 +6,8 @@ type Workflow struct {
 	gorm.Model
 	OwnerUserID        uint
 	ActionName         string
-	ActionParameters   []string `gorm:"serializer:json"`
+	ActionParameters   map[string]string `gorm:"serializer:json"`
 	ReactionName       string
-	ReactionParameters []string `gorm:"serializer:json"`
+	ReactionParameters map[string]string `gorm:"serializer:json"`
 	Active             bool
 }

@@ -3,13 +3,13 @@ package models
 type HandlerContext struct {
 	OwnerUserID        uint
 	WorkflowID         uint
-	ReactionParameters []string
+	ReactionParameters map[string]string
 }
 
 type TriggerContext struct {
 	OwnerUserID      uint
 	WorkflowID       uint
-	ActionParameters []string
+	ActionParameters map[string]string
 	ReactionContext  HandlerContext
 	ReactionHandler  HandlerCallback
 }

@@ -40,7 +40,7 @@ func HandlerCreateAnIssue(ctx models.HandlerContext) error {
 		return errors.New("Request body cannot be converted to JSON, please fix.")
 	}
 
-	url := fmt.Sprintf("https://api.github.com/repos/%s/issues", ctx.ReactionParameters[0])
+	url := fmt.Sprintf("https://api.github.com/repos/%s/issues", ctx.ReactionParameters["target_repository"])
 	req, err := http.NewRequest("POST", url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		log.Print(err)

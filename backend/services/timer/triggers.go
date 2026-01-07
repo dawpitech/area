@@ -10,7 +10,7 @@ import (
 )
 
 func TriggerLaunchAtJob(ctx models.TriggerContext) error {
-	time := strings.Split(ctx.ActionParameters[0], ":")
+	time := strings.Split(ctx.ActionParameters["cron"], ":")
 
 	if len(time) != 3 {
 		return errors.New("Provided time of the day is invalid")
@@ -55,7 +55,7 @@ func RemoveLaunchNewCronJob(ctx models.TriggerContext) error {
 }
 
 func TriggerLaunchNewCronJob(ctx models.TriggerContext) error {
-	crontab := ctx.ActionParameters[0]
+	crontab := ctx.ActionParameters["cron"]
 	_, err := scheduler.NewJob(
 		gocron.CronJob(crontab, false),
 		gocron.NewTask(
