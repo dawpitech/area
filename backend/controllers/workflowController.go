@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"dawpitech/area/engine"
+	"dawpitech/area/engines"
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
 	"dawpitech/area/models/routes"
@@ -62,7 +62,7 @@ func CheckWorkflow(_ *gin.Context, in *routes.CheckWorkflowRequest) (*routes.Che
 		//Active:             false,
 	}
 
-	err, ok := engine.ValidateWorkflow(workflow)
+	err, ok := engines.ValidateWorkflow(workflow)
 	if !ok {
 		return &routes.CheckWorkflowResponse{
 			SyntaxValid: false,
@@ -97,7 +97,7 @@ func DeleteWorkflow(c *gin.Context, in *routes.WorkflowID) error {
 	}
 
 	if workflow.Active {
-		if err, ok := engine.DisableWorkflowTrigger(workflow); !ok {
+		if err, ok := engines.DisableWorkflowTrigger(workflow); !ok {
 			log.Print(err.Error())
 			return err
 		}
@@ -128,7 +128,7 @@ func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*models.Workf
 	}
 
 	if workflow.Active {
-		if err, ok := engine.DisableWorkflowTrigger(workflow); !ok {
+		if err, ok := engines.DisableWorkflowTrigger(workflow); !ok {
 			log.Print(err.Error())
 			return nil, err
 		}
@@ -144,8 +144,12 @@ func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*models.Workf
 		return nil, errors.New("Internal server error")
 	}
 	if in.Active {
-		if err, ok := engine.SetupWorkflowTrigger(workflow); !ok {
+		if err, ok := engines.SetupWorkflowTrigger(workflow); !ok {
 			log.Print(err.Error())
+			workflow.Active = false
+			if rst := initializers.DB.Save(&workflow); rst.Error != nil {
+				return nil, errors.New("Internal server error")
+			}
 			//initializers.DB.Delete(&workflow)
 			return nil, err
 		}

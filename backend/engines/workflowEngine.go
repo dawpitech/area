@@ -1,4 +1,4 @@
-package engine
+package engines
 
 import (
 	"dawpitech/area/initializers"
@@ -60,7 +60,7 @@ func SetupWorkflowTrigger(workflow models.Workflow) (error, bool) {
 	}
 	err := services.ActionStore[workflow.ActionName].SetupTrigger(context)
 	if err != nil {
-		return errors.New("Action's trigger couldn't be set-up, please re-try later."), false
+		return errors.New("Err occurred during setup of the trigger: " + err.Error()), false
 	}
 	return nil, true
 }
