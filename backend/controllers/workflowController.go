@@ -38,6 +38,8 @@ func GetWorkflow(_ *gin.Context, in *routes.WorkflowID) (*routes.GetWorkflowResp
 		Name:               workflow.Name,
 		ActionName:         workflow.ActionName,
 		ActionParameters:   workflow.ActionParameters,
+		ModifierName:       workflow.ModifierName,
+		ModifierParameters: workflow.ModifierParameters,
 		ReactionName:       workflow.ReactionName,
 		ReactionParameters: workflow.ReactionParameters,
 		Active:             workflow.Active,
@@ -58,9 +60,11 @@ func CreateNewWorkflow(c *gin.Context) (*routes.GetWorkflowResponse, error) {
 	workflow := models.Workflow{
 		OwnerUserID:        user.ID,
 		Name:               "New Workflow",
-		ActionName:         "action_none",
+		ActionName:         "none_action",
 		ActionParameters:   nil,
-		ReactionName:       "reaction_none",
+		ModifierName:       "none_modifier",
+		ModifierParameters: nil,
+		ReactionName:       "none_reaction",
 		ReactionParameters: nil,
 		Active:             false,
 	}
@@ -74,6 +78,8 @@ func CreateNewWorkflow(c *gin.Context) (*routes.GetWorkflowResponse, error) {
 		Name:               workflow.Name,
 		ActionName:         workflow.ActionName,
 		ActionParameters:   workflow.ActionParameters,
+		ModifierName:       workflow.ModifierName,
+		ModifierParameters: workflow.ModifierParameters,
 		ReactionName:       workflow.ReactionName,
 		ReactionParameters: workflow.ReactionParameters,
 		Active:             workflow.Active,
@@ -84,6 +90,8 @@ func CheckWorkflow(_ *gin.Context, in *routes.CheckWorkflowRequest) (*routes.Che
 	workflow := models.Workflow{
 		ActionName:         in.ActionName,
 		ActionParameters:   in.ActionParameters,
+		ModifierName:       in.ModifierName,
+		ModifierParameters: in.ModifierParameters,
 		ReactionName:       in.ReactionName,
 		ReactionParameters: in.ReactionParameters,
 	}
@@ -163,6 +171,8 @@ func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*routes.GetWo
 	workflow.Name = in.Name
 	workflow.ActionName = in.ActionName
 	workflow.ActionParameters = in.ActionParameters
+	workflow.ModifierName = in.ModifierName
+	workflow.ModifierParameters = in.ModifierParameters
 	workflow.ReactionName = in.ReactionName
 	workflow.ReactionParameters = in.ReactionParameters
 	workflow.Active = in.Active
@@ -187,6 +197,8 @@ func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*routes.GetWo
 		Name:               workflow.Name,
 		ActionName:         workflow.ActionName,
 		ActionParameters:   workflow.ActionParameters,
+		ModifierName:       workflow.ModifierName,
+		ModifierParameters: workflow.ModifierParameters,
 		ReactionName:       workflow.ReactionName,
 		ReactionParameters: workflow.ReactionParameters,
 		Active:             workflow.Active,

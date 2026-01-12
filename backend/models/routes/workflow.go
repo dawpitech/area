@@ -14,9 +14,11 @@ type GetWorkflowResponse struct {
 	WorkflowID         uint
 	Name               string
 	ActionName         string
-	ActionParameters   map[string]string `gorm:"serializer:json"`
+	ActionParameters   map[string]string
+	ModifierName       string
+	ModifierParameters map[string]string
 	ReactionName       string
-	ReactionParameters map[string]string `gorm:"serializer:json"`
+	ReactionParameters map[string]string
 	Active             bool
 }
 
@@ -25,6 +27,8 @@ type EditWorkflowRequest struct {
 	Name               string
 	ActionName         string
 	ActionParameters   map[string]string
+	ModifierName       string
+	ModifierParameters map[string]string
 	ReactionName       string
 	ReactionParameters map[string]string
 	Active             bool
@@ -33,6 +37,8 @@ type EditWorkflowRequest struct {
 type CheckWorkflowRequest struct {
 	ActionName         string
 	ActionParameters   map[string]string
+	ModifierName       string
+	ModifierParameters map[string]string
 	ReactionName       string
 	ReactionParameters map[string]string
 }
