@@ -55,11 +55,11 @@ func RemoveLaunchNewCronJob(ctx models.Context) error {
 }
 
 func TriggerLaunchNewCronJob(ctx models.Context) error {
-	crontab, cronOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "cron", ctx)
+	crontab, cronOK := workflowEngine.GetParam(workflowEngine.Trigger, "cron", ctx)
 	if !cronOK {
 		return errors.New("Missing parameters")
 	}
-	
+
 	job, err := scheduler.NewJob(
 		gocron.CronJob(crontab, false),
 		gocron.NewTask(workflowEngine.RunWorkflow, ctx),

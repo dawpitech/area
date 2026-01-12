@@ -67,6 +67,7 @@ func SetupWorkflowTrigger(workflow models.Workflow) (error, bool) {
 		ActionParameters:   workflow.ActionParameters,
 		ModifierName:       workflow.ModifierName,
 		ModifierParameters: workflow.ModifierParameters,
+		ModifierHandler:    stores.ModifierStore[workflow.ModifierName].Handler,
 		ReactionName:       workflow.ReactionName,
 		ReactionParameters: workflow.ReactionParameters,
 		ReactionHandler:    stores.ReactionStore[workflow.ReactionName].Handler,

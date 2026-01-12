@@ -3,6 +3,7 @@ package services
 import (
 	"dawpitech/area/middlewares"
 	"dawpitech/area/models"
+	"dawpitech/area/services/discord_webhook"
 	"dawpitech/area/services/github"
 	"dawpitech/area/services/openai"
 	"dawpitech/area/services/placeholder"
@@ -20,6 +21,7 @@ var Services = []models.Service{
 	timer.Provider,
 	placeholder.Provider,
 	openai.Provider,
+	discord_webhook.Provider,
 }
 
 func Init() {
