@@ -3,6 +3,7 @@ package github
 import (
 	"bytes"
 	"dawpitech/area/engines/logEngine"
+	"dawpitech/area/engines/workflowEngine"
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
 	"encoding/json"
@@ -35,6 +36,14 @@ func HandlerCreateAnIssue(ctx models.Context) error {
 		return errors.New("The user has not github account linked.")
 	}
 
+	target, targetOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "target_repository", ctx)
+	issueName, issueNameOK := workflowEngine.GetParam(workflowEngine.ModifierHandler, "issue_name", ctx)
+	issueContent, issueContentOK := workflowEngine.GetParam(workflowEngine.ModifierHandler, "issue_content", ctx)
+
+	if !(targetOK || issueNameOK || issueContentOK) {
+		return errors.New("Missing parameters")
+	}
+
 	var OwnerOAuth2Access ProviderGithubAuthData
 	rst := initializers.DB.Where("user_id=?", ctx.OwnerUserID).First(&OwnerOAuth2Access)
 	if rst.Error != nil {
@@ -44,8 +53,8 @@ func HandlerCreateAnIssue(ctx models.Context) error {
 	token := OwnerOAuth2Access.AccessToken
 
 	reqBody := IssueRequest{
-		Title: ctx.ReactionParameters["issue_name"],
-		Body:  ctx.ReactionParameters["issue_content"],
+		Title: issueName,
+		Body:  issueContent,
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
@@ -53,7 +62,7 @@ func HandlerCreateAnIssue(ctx models.Context) error {
 		log.Fatal(err.Error())
 	}
 
-	url := fmt.Sprintf("https://api.github.com/repos/%s/issues", ctx.ReactionParameters["target_repository"])
+	url := fmt.Sprintf("https://api.github.com/repos/%s/issues", target)
 	req, err := http.NewRequest("POST", url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		log.Print(err)

@@ -10,6 +10,14 @@ import (
 	"log"
 )
 
+type HandlerType int
+
+const (
+	Trigger = iota
+	ModifierHandler
+	ReactionHandler
+)
+
 type WorkflowEngine struct {
 	RegisteredWorkflows []models.Workflow
 	ActionTriggered     chan uint
@@ -133,4 +141,31 @@ func RunWorkflow(ctx models.Context) {
 	}
 	logEngine.NewLogEntry(ctx.WorkflowID, models.InfoLog, "Workflow execution was successful.")
 	log.Printf("Workflow #%d run was successful.\n", ctx.WorkflowID)
+}
+
+func GetParam(hdxType HandlerType, paramName string, ctx models.Context) (string, bool) {
+	if len(paramName) == 0 || paramName == "#" {
+		return "", false
+	}
+	if paramName[0] == '#' {
+		value, present := ctx.RuntimeData[paramName[1:]]
+		return value, present
+	}
+
+	var value string
+	var present bool
+	switch hdxType {
+	case Trigger:
+		value, present = ctx.ActionParameters[paramName]
+		break
+	case ModifierHandler:
+		value, present = ctx.ModifierParameters[paramName]
+		break
+	case ReactionHandler:
+		value, present = ctx.ReactionParameters[paramName]
+		break
+	default:
+		log.Panic("Unknown HandlerType received")
+	}
+	return value, present
 }
