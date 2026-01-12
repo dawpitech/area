@@ -36,9 +36,9 @@ var Provider = models.Service{
 		},
 	},
 	AuthMethod: &models.Authentification{
-		HandlerAuthInit:     AuthInit,
-		HandlerAuthCallback: AuthCallback,
-		HandlerAuthCheck:    AuthCheck,
+		HandlerAuthInit:     AuthGithubInit,
+		HandlerAuthCallback: AuthGithubCallback,
+		HandlerAuthCheck:    AuthGithubCheck,
 	},
 	DBModels: []interface{}{
 		&ProviderGithubAuthData{},

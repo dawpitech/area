@@ -1,4 +1,4 @@
-package github
+package google
 
 import (
 	"context"
@@ -20,7 +20,7 @@ type AuthInitInfo struct {
 
 var AuthStateMap = map[string]AuthInitInfo{}
 
-func AuthGithubInit(g *gin.Context, in *routes.ThirdPartyAuthInit) error {
+func AuthGoogleInit(g *gin.Context, in *routes.ThirdPartyAuthInit) error {
 	maybeUser, ok := g.Get("user")
 
 	if !ok {
@@ -50,7 +50,7 @@ func AuthGithubInit(g *gin.Context, in *routes.ThirdPartyAuthInit) error {
 	return nil
 }
 
-func AuthGithubCallback(g *gin.Context) error {
+func AuthGoogleCallback(g *gin.Context) error {
 	reqState, ok := g.GetQuery("state")
 	if !ok {
 		g.AbortWithStatus(http.StatusBadRequest)
@@ -82,7 +82,7 @@ func AuthGithubCallback(g *gin.Context) error {
 		return nil
 	}
 
-	model := &ProviderGithubAuthData{
+	model := &ProviderGoogleAuthData{
 		UserID:      authInfo.UserID,
 		AccessToken: token.AccessToken,
 		Scope:       scope,
@@ -105,7 +105,7 @@ func AuthGithubCallback(g *gin.Context) error {
 	return nil
 }
 
-func AuthGithubCheck(g *gin.Context) (*routes.ThirdPartyAuthCheck, error) {
+func AuthGoogleCheck(g *gin.Context) (*routes.ThirdPartyAuthCheck, error) {
 	maybeUser, ok := g.Get("user")
 
 	if !ok {
@@ -119,7 +119,7 @@ func AuthGithubCheck(g *gin.Context) (*routes.ThirdPartyAuthCheck, error) {
 
 	var count int64
 	if rst := initializers.DB.
-		Model(&ProviderGithubAuthData{}).
+		Model(&ProviderGoogleAuthData{}).
 		Where("user_id=?", user.ID).
 		Count(&count); rst.Error != nil {
 		return nil, errors.New("Internal server error")

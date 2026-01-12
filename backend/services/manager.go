@@ -5,6 +5,7 @@ import (
 	"dawpitech/area/models"
 	"dawpitech/area/services/discord_webhook"
 	"dawpitech/area/services/github"
+	"dawpitech/area/services/google"
 	"dawpitech/area/services/openai"
 	"dawpitech/area/services/placeholder"
 	"dawpitech/area/services/timer"
@@ -22,6 +23,7 @@ var Services = []models.Service{
 	placeholder.Provider,
 	openai.Provider,
 	discord_webhook.Provider,
+	google.Provider,
 }
 
 func Init() {
