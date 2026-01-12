@@ -56,6 +56,7 @@ type Reaction struct {
 
 type Service struct {
 	Name       string
+	Hidden     bool
 	Actions    []Action
 	Modifiers  []Modifier
 	Reactions  []Reaction

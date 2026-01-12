@@ -10,6 +10,7 @@ import (
 
 var Provider = models.Service{
 	Name:      "Github",
+	Hidden:    false,
 	Actions:   nil,
 	Modifiers: nil,
 	Reactions: []models.Reaction{

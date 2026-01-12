@@ -4,6 +4,7 @@ import (
 	"dawpitech/area/middlewares"
 	"dawpitech/area/models"
 	"dawpitech/area/services/github"
+	"dawpitech/area/services/openai"
 	"dawpitech/area/services/placeholder"
 	"dawpitech/area/services/timer"
 	"dawpitech/area/stores"
@@ -18,6 +19,7 @@ var Services = []models.Service{
 	github.Provider,
 	timer.Provider,
 	placeholder.Provider,
+	openai.Provider,
 }
 
 func Init() {

@@ -16,6 +16,7 @@ type AboutServiceDetail struct {
 type AboutService struct {
 	Name      string               `json:"name"`
 	Actions   []AboutServiceDetail `json:"actions"`
+	Modifiers []AboutServiceDetail `json:"modifiers"`
 	Reactions []AboutServiceDetail `json:"reactions"`
 }
 

@@ -4,6 +4,7 @@ import "dawpitech/area/models"
 
 var Provider = models.Service{
 	Name:    "OpenAI",
+	Hidden:  false,
 	Actions: nil,
 	Modifiers: []models.Modifier{
 		{

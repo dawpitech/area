@@ -7,7 +7,8 @@ func HandlerEmpty(_ models.Context) error {
 }
 
 var Provider = models.Service{
-	Name: "Placeholder",
+	Name:   "Placeholder",
+	Hidden: true,
 	Actions: []models.Action{
 		{
 			Name:          "none_action",
