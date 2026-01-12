@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"dawpitech/area/crypto"
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
 	"dawpitech/area/models/routes"
@@ -17,13 +18,17 @@ func LoginUser(_ *gin.Context, in *routes.AuthRequest) (*routes.AuthResponse, er
 	rst := initializers.DB.Joins("Auth").Where("email=?", in.Email).First(&userFound)
 	if rst.Error != nil {
 		if errors.Is(rst.Error, gorm.ErrRecordNotFound) {
-			return nil, errors.NewUserNotFound(nil, "User not found.")
+			return nil, errors.NewForbidden(nil, "Invalid user or password.")
 		}
 		return nil, errors.New("Internal server error.")
 	}
 
-	if in.Password != userFound.Auth.PasswordHash {
-		return nil, errors.NewForbidden(nil, "Invalid password.")
+	match, err := crypto.ValidateHash(in.Password, userFound.Auth.PasswordHash)
+	if err != nil {
+		return nil, errors.New("Internal server error.")
+	}
+	if !match {
+		return nil, errors.NewForbidden(nil, "Invalid user or password.")
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{

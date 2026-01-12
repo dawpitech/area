@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"dawpitech/area/crypto"
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
 	"dawpitech/area/models/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/juju/errors"
+	"log"
 )
 
 func GetAllUsers(_ *gin.Context) (*[]models.User, error) {
@@ -29,11 +31,17 @@ func CreateNewUser(_ *gin.Context, in *routes.UserCreationRequest) (*routes.User
 		return nil, errors.NewAlreadyExists(nil, "An user already exist with this email address ")
 	}
 
+	hash, err := crypto.GenerateEncodedHash(in.Password)
+	if err != nil {
+		log.Print(err.Error())
+		return nil, errors.New("Internal server error.")
+	}
+
 	user := models.User{
 		Username: "placeholder",
 		Auth: models.AuthMethods{
 			Email:        in.Email,
-			PasswordHash: in.Password,
+			PasswordHash: hash,
 		},
 	}
 
