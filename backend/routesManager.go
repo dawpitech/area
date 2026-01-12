@@ -123,6 +123,22 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		tonic.Handler(controllers.GetReactionInfo, 200),
 	)
 
+	modifiersRoutes := fizzRouter.Group("/modifiers", "Modifiers details", "WIP")
+	modifiersRoutes.GET(
+		"/",
+		[]fizz.OperationOption{
+			fizz.Summary("Get the list of all modifiers"),
+		},
+		tonic.Handler(controllers.GetAllModifier, 200),
+	)
+	modifiersRoutes.GET(
+		"/:name",
+		[]fizz.OperationOption{
+			fizz.Summary("Get details about a modifier"),
+		},
+		tonic.Handler(controllers.GetModifierInfo, 200),
+	)
+
 	logsRoutes := fizzRouter.Group("/logs", "Logs engine", "WIP")
 	logsRoutes.GET(
 		"/workflow/:id",
