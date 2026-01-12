@@ -35,12 +35,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import java.text.SimpleDateFormat
 import java.util.Locale
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.ArrowDropDown
 
 data class Workflow(
     val ID: Int? = null,
     val Name: String = "",
     val ActionName: String = "",
     val ActionParameters: List<String> = emptyList(),
+    val ModifierName: String = "",
+    val ModifierParameters: List<String> = emptyList(),
     val ReactionName: String = "",
     val ReactionParameters: List<String> = emptyList(),
     val Active: Boolean = true
@@ -109,9 +114,11 @@ fun WorkflowListScreen(
                                                             updateWorkflowApi(
                                                                 token, workflowId,
                                                                 fullWorkflow.ActionName,
-                                                                fullWorkflow.ActionParameters.map { it }, // Convert back to strings
+                                                                fullWorkflow.ActionParameters.map { it },
+                                                                fullWorkflow.ModifierName,
+                                                                fullWorkflow.ModifierParameters.map { it },
                                                                 fullWorkflow.ReactionName,
-                                                                fullWorkflow.ReactionParameters.map { it }, // Convert back to strings
+                                                                fullWorkflow.ReactionParameters.map { it },
                                                                 newActive,
                                                                 fullWorkflow.Name
                                                             ).fold(
@@ -160,7 +167,7 @@ fun WorkflowListScreen(
                                                         newList.removeAt(index)
                                                         workflows = newList
                                                         println("Deleted workflow at index $index")
-                                                        onDeleted(workflowId) // Call the callback after successful deletion
+                                                        onDeleted(workflowId)
                                                     }
                                                 }, onFailure = { e ->
                                                     val errorMsg = e.message ?: "Delete failed"
@@ -206,26 +213,34 @@ fun CreateWorkflowScreen(
     val scope = rememberCoroutineScope()
     var workflowName by remember { mutableStateOf("") }
     var actionName by remember { mutableStateOf("") }
+    var modifierName by remember { mutableStateOf("") }
     var reactionName by remember { mutableStateOf("") }
     var isActive by remember { mutableStateOf(true) }
 
     val actionParams = remember { mutableStateListOf<String>() }
+    val modifierParams = remember { mutableStateListOf<String>() }
     val reactionParams = remember { mutableStateListOf<String>() }
 
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
     var availableActionInfos by remember { mutableStateOf<List<ActionInfo>>(emptyList()) }
+    var availableModifierInfos by remember { mutableStateOf<List<ModifierInfo>>(emptyList()) }
     var availableReactionInfos by remember { mutableStateOf<List<ReactionInfo>>(emptyList()) }
     var selectedActionInfo by remember { mutableStateOf<ActionInfo?>(null) }
+    var selectedModifierInfo by remember { mutableStateOf<ModifierInfo?>(null) }
     var selectedReactionInfo by remember { mutableStateOf<ReactionInfo?>(null) }
+    var availableOutputs by remember { mutableStateOf<List<OutputInfo>>(emptyList()) }
     var actionsLoading by remember { mutableStateOf(false) }
+    var modifiersLoading by remember { mutableStateOf(false) }
     var reactionsLoading by remember { mutableStateOf(false) }
     var actionExpanded by remember { mutableStateOf(false) }
+    var modifierExpanded by remember { mutableStateOf(false) }
     var reactionExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         actionsLoading = true
+        modifiersLoading = true
         reactionsLoading = true
 
         scope.launch {
@@ -248,6 +263,29 @@ fun CreateWorkflowScreen(
 
             if (actionName.isNotBlank()) {
                 selectedActionInfo = actionInfos.find { it.Name == actionName }
+            }
+        }
+
+        scope.launch {
+            val modifierInfos = mutableListOf<ModifierInfo>()
+            getAllModifiers().fold(
+                onSuccess = { modifierNames ->
+                    modifierNames.forEach { modifierName ->
+                        getModifierInfo(modifierName).fold(
+                            onSuccess = { info -> modifierInfos.add(info) },
+                            onFailure = {
+                                modifierInfos.add(ModifierInfo(modifierName, modifierName, "", emptyList()))
+                            }
+                        )
+                    }
+                },
+                onFailure = {  }
+            )
+            availableModifierInfos = modifierInfos
+            modifiersLoading = false
+
+            if (modifierName.isNotBlank()) {
+                selectedModifierInfo = modifierInfos.find { it.Name == modifierName }
             }
         }
 
@@ -290,7 +328,7 @@ fun CreateWorkflowScreen(
                         loading = true
                         error = null
                         scope.launch {
-                            val res = createWorkflowApi(token, workflowName.ifBlank { "New Workflow" }, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, isActive)
+                            val res = createWorkflowApi(token, workflowName.ifBlank { "New Workflow" }, actionName, actionParams.filter { it.isNotBlank() }, modifierName, modifierParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, isActive)
                             loading = false
                             res.fold(
                                 onSuccess = { wf -> onSaved(wf) },
@@ -382,6 +420,7 @@ fun CreateWorkflowScreen(
                                             actionInfo.Parameters.forEach { param ->
                                                 actionParams.add("$param=")
                                             }
+                                            availableOutputs = actionInfo.OutputInfos
                                         }
                                     )
                                 }
@@ -393,17 +432,18 @@ fun CreateWorkflowScreen(
 
                         for ((index, param) in actionParams.withIndex()) {
                             val parts = param.split("=", limit = 2)
-                            val key = parts.getOrNull(0) ?: ""
+                            val technicalName = parts.getOrNull(0) ?: ""
                             val value = parts.getOrNull(1) ?: ""
+                            val prettyName = selectedActionInfo?.ParameterInfos?.find { it.Name == technicalName }?.PrettyName ?: technicalName
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                Text("$key:", modifier = Modifier.width(100.dp))
-                                OutlinedTextField(
+                                ParameterInputField(
+                                    parameterTechnicalName = technicalName,
+                                    parameterPrettyName = prettyName,
                                     value = value,
-                                    onValueChange = { v -> actionParams[index] = "$key=$v" },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    placeholder = { Text("Enter value") },
-                                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
+                                    onValueChange = { v -> actionParams[index] = "$technicalName=$v" },
+                                    availableOutputs = availableOutputs,
+                                    allowOutputSelection = false,
+                                    modifier = Modifier.weight(1f)
                                 )
                                 IconButton(onClick = { actionParams.removeAt(index) }) {
                                     Icon(Icons.Default.Delete, contentDescription = "Remove")
@@ -411,6 +451,84 @@ fun CreateWorkflowScreen(
                             }
                         }
                         TextButton(onClick = { actionParams.add("") }) { Text("Add parameter") }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Modifier Details (Optional)", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ExposedDropdownMenuBox(
+                            expanded = modifierExpanded,
+                            onExpandedChange = { modifierExpanded = !modifierExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedModifierInfo?.PrettyName ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Modifier") },
+                                placeholder = { Text("Select a modifier (optional)") },
+                                trailingIcon = {
+                                    if (modifiersLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                                    } else {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = modifierExpanded)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = modifierExpanded,
+                                onDismissRequest = { modifierExpanded = false }
+                            ) {
+                                availableModifierInfos.forEach { modifierInfo ->
+                                    DropdownMenuItem(
+                                        text = { Text(modifierInfo.PrettyName) },
+                                        onClick = {
+                                            modifierName = modifierInfo.Name
+                                            selectedModifierInfo = modifierInfo
+                                            modifierExpanded = false
+                                            modifierParams.clear()
+                                            modifierInfo.Parameters.forEach { param ->
+                                                modifierParams.add("$param=")
+                                            }
+                                            val combinedOutputs = mutableListOf<OutputInfo>()
+                                            combinedOutputs.addAll(selectedActionInfo?.OutputInfos ?: emptyList())
+                                            combinedOutputs.addAll(modifierInfo.OutputInfos)
+                                            availableOutputs = combinedOutputs
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        if (modifierName.isNotBlank()) {
+                            Text("Modifier parameters", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            for ((index, param) in modifierParams.withIndex()) {
+                                val parts = param.split("=", limit = 2)
+                                val key = parts.getOrNull(0) ?: ""
+                                val value = parts.getOrNull(1) ?: ""
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                    ParameterInputField(
+                                        parameterTechnicalName = key,
+                                        parameterPrettyName = selectedModifierInfo?.ParameterInfos?.find { it.Name == key }?.PrettyName ?: key,
+                                        value = value,
+                                        onValueChange = { v -> modifierParams[index] = "$key=$v" },
+                                        availableOutputs = availableOutputs,
+                                        showOnlyActionOutputs = true,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(onClick = { modifierParams.removeAt(index) }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Remove")
+                                    }
+                                }
+                            }
+                            TextButton(onClick = { modifierParams.add("") }) { Text("Add parameter") }
+                        }
                     }
                 }
 
@@ -465,20 +583,19 @@ fun CreateWorkflowScreen(
                             val parts = param.split("=", limit = 2)
                             val key = parts.getOrNull(0) ?: ""
                             val value = parts.getOrNull(1) ?: ""
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                Text("$key:", modifier = Modifier.width(100.dp))
-                                OutlinedTextField(
-                                    value = value,
-                                    onValueChange = { v -> reactionParams[index] = "$key=$v" },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    placeholder = { Text("Enter value") },
-                                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
-                                )
-                                IconButton(onClick = { reactionParams.removeAt(index) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Remove")
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                    ParameterInputField(
+                                        parameterTechnicalName = key,
+                                        parameterPrettyName = selectedReactionInfo?.ParameterInfos?.find { it.Name == key }?.PrettyName ?: key,
+                                        value = value,
+                                        onValueChange = { v -> reactionParams[index] = "$key=$v" },
+                                        availableOutputs = availableOutputs,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(onClick = { reactionParams.removeAt(index) }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Remove")
+                                    }
                                 }
-                            }
                         }
                         TextButton(onClick = { reactionParams.add("") }) { Text("Add parameter") }
                     }
@@ -491,7 +608,7 @@ fun CreateWorkflowScreen(
                         loading = true
                         error = null
                         scope.launch {
-                            val res = createWorkflowApi(token, workflowName.ifBlank { "New Workflow" }, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, isActive)
+                            val res = createWorkflowApi(token, workflowName.ifBlank { "New Workflow" }, actionName, actionParams.filter { it.isNotBlank() }, modifierName, modifierParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, isActive)
                             loading = false
                             res.fold(onSuccess = { wf -> onSaved(wf) }, onFailure = { e -> error = e.message ?: "Save failed" })
                         }
@@ -617,6 +734,87 @@ fun WorkflowLogsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ParameterInputField(
+    parameterTechnicalName: String,
+    parameterPrettyName: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    availableOutputs: List<OutputInfo>,
+    allowOutputSelection: Boolean = true,
+    showOnlyActionOutputs: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    val displayOutputs = if (showOnlyActionOutputs) {
+        availableOutputs.filter { it.Source == "action" }
+    } else {
+        availableOutputs
+    }
+    var outputExpanded by remember { mutableStateOf(false) }
+
+    val displayValue = if (value.startsWith("#")) {
+        val outputName = value.substring(1)
+        displayOutputs.find { it.Name == outputName }?.PrettyName ?: value
+    } else {
+        value
+    }
+
+    Column(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Text("$parameterPrettyName:", modifier = Modifier.width(120.dp))
+            OutlinedTextField(
+                value = displayValue,
+                onValueChange = { newValue ->
+                    val matchingOutput = displayOutputs.find { it.PrettyName == newValue }
+                    if (matchingOutput != null) {
+                        onValueChange("#${matchingOutput.Name}")
+                    } else {
+                        onValueChange(newValue)
+                    }
+                },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                placeholder = { Text(if (allowOutputSelection) "Enter value or select output" else "Enter value") },
+                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                trailingIcon = if (allowOutputSelection) {
+                    {
+                        IconButton(onClick = { outputExpanded = !outputExpanded }) {
+                            Icon(
+                                if (outputExpanded) Icons.Default.Close else Icons.Default.ArrowDropDown,
+                                contentDescription = "Select output"
+                            )
+                        }
+                    }
+                } else null
+            )
+        }
+
+        if (outputExpanded && displayOutputs.isNotEmpty() && allowOutputSelection) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(start = 124.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text("Available Outputs:", style = MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    displayOutputs.forEach { output ->
+                        TextButton(
+                            onClick = {
+                                onValueChange("#${output.Name}")
+                                outputExpanded = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(output.PrettyName, textAlign = androidx.compose.ui.text.style.TextAlign.Start)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun LogEntryCard(log: LogEntry) {
     val (backgroundColor, icon, iconTint, textColor) = when (log.Type.lowercase()) {
@@ -698,7 +896,7 @@ private fun formatTimestamp(timestamp: String): String {
             val outputFormat = SimpleDateFormat("MMM dd, HH:mm:ss", Locale.getDefault())
             date?.let { outputFormat.format(it) } ?: timestamp
         } catch (e: Exception) {
-            timestamp // Return original if parsing fails
+            timestamp
         }
     }
 }
@@ -715,26 +913,34 @@ fun EditWorkflowScreen(
     val scope = rememberCoroutineScope()
     var workflowName by remember { mutableStateOf(workflow.Name) }
     var actionName by remember { mutableStateOf(workflow.ActionName) }
+    var modifierName by remember { mutableStateOf(workflow.ModifierName) }
     var reactionName by remember { mutableStateOf(workflow.ReactionName) }
     var active by remember { mutableStateOf(workflow.Active) }
 
     val actionParams = remember { mutableStateListOf<String>().apply { addAll(workflow.ActionParameters) } }
+    val modifierParams = remember { mutableStateListOf<String>().apply { addAll(workflow.ModifierParameters) } }
     val reactionParams = remember { mutableStateListOf<String>().apply { addAll(workflow.ReactionParameters) } }
 
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
     var availableActionInfos by remember { mutableStateOf<List<ActionInfo>>(emptyList()) }
+    var availableModifierInfos by remember { mutableStateOf<List<ModifierInfo>>(emptyList()) }
     var availableReactionInfos by remember { mutableStateOf<List<ReactionInfo>>(emptyList()) }
     var selectedActionInfo by remember { mutableStateOf<ActionInfo?>(null) }
+    var selectedModifierInfo by remember { mutableStateOf<ModifierInfo?>(null) }
     var selectedReactionInfo by remember { mutableStateOf<ReactionInfo?>(null) }
+    var availableOutputs by remember { mutableStateOf<List<OutputInfo>>(emptyList()) }
     var actionsLoading by remember { mutableStateOf(false) }
+    var modifiersLoading by remember { mutableStateOf(false) }
     var reactionsLoading by remember { mutableStateOf(false) }
     var actionExpanded by remember { mutableStateOf(false) }
+    var modifierExpanded by remember { mutableStateOf(false) }
     var reactionExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         actionsLoading = true
+        modifiersLoading = true
         reactionsLoading = true
 
         scope.launch {
@@ -746,10 +952,13 @@ fun EditWorkflowScreen(
                             Log.d("WorkflowScreens", "getWorkflowDetails returned: ID=${fullWorkflow.ID}, Name='${fullWorkflow.Name}'")
                             workflowName = fullWorkflow.Name
                             actionName = fullWorkflow.ActionName
+                            modifierName = fullWorkflow.ModifierName
                             reactionName = fullWorkflow.ReactionName
                             active = fullWorkflow.Active
                             actionParams.clear()
                             actionParams.addAll(fullWorkflow.ActionParameters)
+                            modifierParams.clear()
+                            modifierParams.addAll(fullWorkflow.ModifierParameters)
                             reactionParams.clear()
                             reactionParams.addAll(fullWorkflow.ReactionParameters)
                         },
@@ -781,6 +990,39 @@ fun EditWorkflowScreen(
             if (selectedAction != null) {
                 selectedActionInfo = selectedAction
             }
+        }
+
+        scope.launch {
+            val modifierInfos = mutableListOf<ModifierInfo>()
+            getAllModifiers().fold(
+                onSuccess = { modifierNames ->
+                    modifierNames.forEach { modifierName ->
+                        getModifierInfo(modifierName).fold(
+                            onSuccess = { info -> modifierInfos.add(info) },
+                            onFailure = {  }
+                        )
+                    }
+                },
+                onFailure = {  }
+            )
+            availableModifierInfos = modifierInfos
+            modifiersLoading = false
+
+            val selectedModifier = modifierInfos.find { it.Name == modifierName }
+            if (selectedModifier != null) {
+                selectedModifierInfo = selectedModifier
+            }
+
+            val combinedOutputs = mutableListOf<OutputInfo>()
+            val selectedAction = availableActionInfos.find { it.Name == actionName }
+            if (selectedAction != null) {
+                combinedOutputs.addAll(selectedAction.OutputInfos)
+            }
+            val selectedMod = modifierInfos.find { it.Name == modifierName }
+            if (selectedMod != null) {
+                combinedOutputs.addAll(selectedMod.OutputInfos)
+            }
+            availableOutputs = combinedOutputs
         }
 
         scope.launch {
@@ -821,7 +1063,7 @@ fun EditWorkflowScreen(
                         loading = true
                         error = null
                         scope.launch {
-                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, active, workflowName)
+                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, modifierName, modifierParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, active, workflowName)
                             loading = false
                             res.fold(
                                 onSuccess = { wf -> onSaved(wf) },
@@ -905,6 +1147,7 @@ fun EditWorkflowScreen(
                                             actionInfo.Parameters.forEach { param ->
                                                 actionParams.add("$param=")
                                             }
+                                            availableOutputs = actionInfo.OutputInfos
                                         }
                                     )
                                 }
@@ -916,17 +1159,18 @@ fun EditWorkflowScreen(
 
                         for ((index, param) in actionParams.withIndex()) {
                             val parts = param.split("=", limit = 2)
-                            val key = parts.getOrNull(0) ?: ""
+                            val technicalName = parts.getOrNull(0) ?: ""
                             val value = parts.getOrNull(1) ?: ""
+                            val prettyName = selectedActionInfo?.ParameterInfos?.find { it.Name == technicalName }?.PrettyName ?: technicalName
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                Text("$key:", modifier = Modifier.width(100.dp))
-                                OutlinedTextField(
+                                ParameterInputField(
+                                    parameterTechnicalName = technicalName,
+                                    parameterPrettyName = prettyName,
                                     value = value,
-                                    onValueChange = { v -> actionParams[index] = "$key=$v" },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    placeholder = { Text("Enter value") },
-                                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
+                                    onValueChange = { v -> actionParams[index] = "$technicalName=$v" },
+                                    availableOutputs = availableOutputs,
+                                    allowOutputSelection = false,
+                                    modifier = Modifier.weight(1f)
                                 )
                                 IconButton(onClick = { actionParams.removeAt(index) }) {
                                     Icon(Icons.Default.Delete, contentDescription = "Remove")
@@ -934,6 +1178,84 @@ fun EditWorkflowScreen(
                             }
                         }
                         TextButton(onClick = { actionParams.add("") }) { Text("Add parameter") }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Modifier Details (Optional)", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ExposedDropdownMenuBox(
+                            expanded = modifierExpanded,
+                            onExpandedChange = { modifierExpanded = !modifierExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedModifierInfo?.PrettyName ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Modifier") },
+                                placeholder = { Text("Select a modifier (optional)") },
+                                trailingIcon = {
+                                    if (modifiersLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                                    } else {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = modifierExpanded)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = modifierExpanded,
+                                onDismissRequest = { modifierExpanded = false }
+                            ) {
+                                availableModifierInfos.forEach { modifierInfo ->
+                                    DropdownMenuItem(
+                                        text = { Text(modifierInfo.PrettyName) },
+                                        onClick = {
+                                            modifierName = modifierInfo.Name
+                                            selectedModifierInfo = modifierInfo
+                                            modifierExpanded = false
+                                            modifierParams.clear()
+                                            modifierInfo.Parameters.forEach { param ->
+                                                modifierParams.add("$param=")
+                                            }
+                                            val combinedOutputs = mutableListOf<OutputInfo>()
+                                            combinedOutputs.addAll(selectedActionInfo?.OutputInfos ?: emptyList())
+                                            combinedOutputs.addAll(modifierInfo.OutputInfos)
+                                            availableOutputs = combinedOutputs
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        if (modifierName.isNotBlank()) {
+                            Text("Modifier parameters", style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            for ((index, param) in modifierParams.withIndex()) {
+                                val parts = param.split("=", limit = 2)
+                                val key = parts.getOrNull(0) ?: ""
+                                val value = parts.getOrNull(1) ?: ""
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                    ParameterInputField(
+                                        parameterTechnicalName = key,
+                                        parameterPrettyName = selectedModifierInfo?.ParameterInfos?.find { it.Name == key }?.PrettyName ?: key,
+                                        value = value,
+                                        onValueChange = { v -> modifierParams[index] = "$key=$v" },
+                                        availableOutputs = availableOutputs,
+                                        showOnlyActionOutputs = true,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(onClick = { modifierParams.removeAt(index) }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Remove")
+                                    }
+                                }
+                            }
+                            TextButton(onClick = { modifierParams.add("") }) { Text("Add parameter") }
+                        }
                     }
                 }
 
@@ -988,20 +1310,19 @@ fun EditWorkflowScreen(
                             val parts = param.split("=", limit = 2)
                             val key = parts.getOrNull(0) ?: ""
                             val value = parts.getOrNull(1) ?: ""
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                                Text("$key:", modifier = Modifier.width(100.dp))
-                                OutlinedTextField(
-                                    value = value,
-                                    onValueChange = { v -> reactionParams[index] = "$key=$v" },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    placeholder = { Text("Enter value") },
-                                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done)
-                                )
-                                IconButton(onClick = { reactionParams.removeAt(index) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Remove")
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                    ParameterInputField(
+                                        parameterTechnicalName = key,
+                                        parameterPrettyName = selectedReactionInfo?.ParameterInfos?.find { it.Name == key }?.PrettyName ?: key,
+                                        value = value,
+                                        onValueChange = { v -> reactionParams[index] = "$key=$v" },
+                                        availableOutputs = availableOutputs,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(onClick = { reactionParams.removeAt(index) }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Remove")
+                                    }
                                 }
-                            }
                         }
                         TextButton(onClick = { reactionParams.add("") }) { Text("Add parameter") }
                     }
@@ -1029,7 +1350,7 @@ fun EditWorkflowScreen(
                         loading = true
                         error = null
                         scope.launch {
-                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, active, workflowName)
+                            val res = updateWorkflowApi(token, workflow.ID!!, actionName, actionParams.filter { it.isNotBlank() }, modifierName, modifierParams.filter { it.isNotBlank() }, reactionName, reactionParams.filter { it.isNotBlank() }, active, workflowName)
                             loading = false
                             res.fold(onSuccess = { wf -> onSaved(wf) }, onFailure = { e -> error = e.message ?: "Save failed" })
                         }

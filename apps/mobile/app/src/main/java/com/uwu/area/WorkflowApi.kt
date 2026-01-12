@@ -49,9 +49,11 @@ suspend fun fetchWorkflows(token: String? = null): Result<List<Workflow>> {
                                 val wp = Workflow(
                                     ID = workflowId,
                                     Name = workflowName,
-                                    ActionName = "", // Will be loaded on demand
+                                    ActionName = "",
                                     ActionParameters = emptyList(),
-                                    ReactionName = "", // Will be loaded on demand
+                                    ModifierName = "",
+                                    ModifierParameters = emptyList(),
+                                    ReactionName = "",
                                     ReactionParameters = emptyList(),
                                     Active = workflowActive
                                 )
@@ -80,6 +82,8 @@ suspend fun createWorkflowApi(
     workflowName: String,
     actionName: String,
     actionParams: List<String>,
+    modifierName: String = "",
+    modifierParams: List<String> = emptyList(),
     reactionName: String,
     reactionParams: List<String>,
     active: Boolean = true
@@ -131,19 +135,20 @@ suspend fun createWorkflowApi(
                 ID = workflowId,
                 Name = name,
                 ActionName = actionNameFromResponse,
-                ActionParameters = emptyList(), // Will be updated
+                ActionParameters = emptyList(),
+                ModifierName = "",
+                ModifierParameters = emptyList(),
                 ReactionName = reactionNameFromResponse,
-                ReactionParameters = emptyList(), // Will be updated
+                ReactionParameters = emptyList(),
                 Active = active
             )
 
-            val checkResult = checkWorkflowApi(actionName, actionParams, reactionName, reactionParams)
+            val checkResult = checkWorkflowApi(actionName, actionParams, modifierName, modifierParams, reactionName, reactionParams)
             if (checkResult.isFailure) {
                 return@withContext Result.failure(checkResult.exceptionOrNull() ?: Exception("Workflow check failed"))
             }
 
-            Log.d("WorkflowApi", "Updating workflow $workflowId with name='$workflowName', action='$actionName', reaction='$reactionName'")
-            val updateResult = updateWorkflowApi(token, workflowId, actionName, actionParams, reactionName, reactionParams, active, workflowName)
+            val updateResult = updateWorkflowApi(token, workflowId, actionName, actionParams, modifierName, modifierParams, reactionName, reactionParams, active, workflowName)
             updateResult.fold(
                 onSuccess = { updatedWorkflow ->
                     Result.success(updatedWorkflow)
@@ -199,15 +204,17 @@ suspend fun updateWorkflowApi(
     id: Int,
     actionName: String,
     actionParams: List<String>,
+    modifierName: String = "",
+    modifierParams: List<String> = emptyList(),
     reactionName: String,
     reactionParams: List<String>,
     active: Boolean = true,
     name: String = ""
 ): Result<Workflow> {
-    Log.d("WorkflowApi", "updateWorkflowApi called with id=$id, name='$name', action='$actionName', reaction='$reactionName'")
+    Log.d("WorkflowApi", "updateWorkflowApi called with id=$id, name='$name', action='$actionName', modifier='$modifierName', reaction='$reactionName'")
     return withContext(Dispatchers.IO) {
         try {
-            val checkResult = checkWorkflowApi(actionName, actionParams, reactionName, reactionParams)
+            val checkResult = checkWorkflowApi(actionName, actionParams, modifierName, modifierParams, reactionName, reactionParams)
             if (checkResult.isFailure) {
                 return@withContext Result.failure(checkResult.exceptionOrNull() ?: Exception("Workflow check failed"))
             }
@@ -225,6 +232,8 @@ suspend fun updateWorkflowApi(
             val body = JSONObject().apply {
                 put("ActionName", actionName)
                 put("ActionParameters", listToJSONObject(actionParams))
+                put("ModifierName", modifierName)
+                put("ModifierParameters", listToJSONObject(modifierParams))
                 put("ReactionName", reactionName)
                 put("ReactionParameters", listToJSONObject(reactionParams))
                 put("Active", active)
@@ -248,12 +257,15 @@ suspend fun updateWorkflowApi(
             if (code in 200..299) {
                 val jo = JSONObject(respText)
                 val actionParams = jsonObjectToList(jo.optJSONObject("ActionParameters"))
+                val modifierParams = jsonObjectToList(jo.optJSONObject("ModifierParameters"))
                 val reactionParams = jsonObjectToList(jo.optJSONObject("ReactionParameters"))
                 val wf = Workflow(
                     ID = jo.getWorkflowId(),
                     Name = jo.optString("Name", ""),
                     ActionName = jo.optString("ActionName", actionName),
                     ActionParameters = actionParams,
+                    ModifierName = jo.optString("ModifierName", modifierName),
+                    ModifierParameters = modifierParams,
                     ReactionName = jo.optString("ReactionName", ""),
                     ReactionParameters = reactionParams,
                     Active = jo.optBoolean("Active", true)
@@ -272,7 +284,49 @@ private fun jsonArrayToList(arr: JSONArray?): List<String> {
     if (arr == null) return emptyList()
     val out = mutableListOf<String>()
     for (i in 0 until arr.length()) {
-        try { out.add(arr.optString(i, "")) } catch (_: Exception) {}
+        try {
+            val item = arr.optJSONObject(i)
+            if (item != null) {
+                out.add(item.optString("Name", ""))
+            } else {
+                out.add(arr.optString(i, ""))
+            }
+        } catch (_: Exception) {}
+    }
+    return out
+}
+
+private fun jsonArrayToOutputList(arr: JSONArray?, source: String): List<OutputInfo> {
+    if (arr == null) return emptyList()
+    val out = mutableListOf<OutputInfo>()
+    for (i in 0 until arr.length()) {
+        try {
+            val item = arr.optJSONObject(i)
+            if (item != null) {
+                out.add(OutputInfo(
+                    Name = item.optString("Name", ""),
+                    PrettyName = item.optString("PrettyName", ""),
+                    Source = source
+                ))
+            }
+        } catch (_: Exception) {}
+    }
+    return out
+}
+
+private fun jsonArrayToParameterList(arr: JSONArray?): List<ParameterInfo> {
+    if (arr == null) return emptyList()
+    val out = mutableListOf<ParameterInfo>()
+    for (i in 0 until arr.length()) {
+        try {
+            val item = arr.optJSONObject(i)
+            if (item != null) {
+                out.add(ParameterInfo(
+                    Name = item.optString("Name", ""),
+                    PrettyName = item.optString("PrettyName", "")
+                ))
+            }
+        } catch (_: Exception) {}
     }
     return out
 }
@@ -307,6 +361,8 @@ private fun listToJSONObject(params: List<String>): JSONObject {
 suspend fun checkWorkflowApi(
     actionName: String,
     actionParams: List<String>,
+    modifierName: String = "",
+    modifierParams: List<String> = emptyList(),
     reactionName: String,
     reactionParams: List<String>
 ): Result<String> {
@@ -324,6 +380,8 @@ suspend fun checkWorkflowApi(
             val body = JSONObject().apply {
                 put("ActionName", actionName)
                 put("ActionParameters", listToJSONObject(actionParams))
+                put("ModifierName", modifierName)
+                put("ModifierParameters", listToJSONObject(modifierParams))
                 put("ReactionName", reactionName)
                 put("ReactionParameters", listToJSONObject(reactionParams))
             }.toString()
@@ -387,17 +445,21 @@ suspend fun getWorkflowDetails(token: String? = null, workflowId: Int): Result<W
                 val workflowId = jo.getWorkflowId()
                 val workflowName = jo.optString("Name", "")
                 val actionName = jo.optString("ActionName", "")
+                val modifierName = jo.optString("ModifierName", "")
                 val reactionName = jo.optString("ReactionName", "")
                 val active = jo.optBoolean("Active", false)
-                Log.d("WorkflowApi", "getWorkflowDetails for ID $workflowId returned: Name='$workflowName', Action='$actionName', Reaction='$reactionName', Active=$active")
+                Log.d("WorkflowApi", "getWorkflowDetails for ID $workflowId returned: Name='$workflowName', Action='$actionName', Modifier='$modifierName', Reaction='$reactionName', Active=$active")
 
                 val actionParams = jsonObjectToList(jo.optJSONObject("ActionParameters"))
+                val modifierParams = jsonObjectToList(jo.optJSONObject("ModifierParameters"))
                 val reactionParams = jsonObjectToList(jo.optJSONObject("ReactionParameters"))
                 val workflow = Workflow(
                     ID = workflowId,
                     Name = workflowName,
                     ActionName = actionName,
                     ActionParameters = actionParams,
+                    ModifierName = modifierName,
+                    ModifierParameters = modifierParams,
                     ReactionName = reactionName,
                     ReactionParameters = reactionParams,
                     Active = active
@@ -491,18 +553,51 @@ suspend fun getAllReactions(): Result<List<String>> {
     }
 }
 
+data class ParameterInfo(
+    val Name: String,
+    val PrettyName: String
+)
+
+data class OutputInfo(
+    val Name: String,
+    val PrettyName: String,
+    val Source: String
+)
+
+data class ParameterValue(
+    val technicalName: String,
+    val prettyName: String,
+    val value: String
+)
+
 data class ActionInfo(
     val Name: String,
     val PrettyName: String,
     val Description: String,
-    val Parameters: List<String>
+    val Parameters: List<String>,
+    val ParameterInfos: List<ParameterInfo> = emptyList(),
+    val Outputs: List<String> = emptyList(),
+    val OutputInfos: List<OutputInfo> = emptyList()
 )
 
 data class ReactionInfo(
     val Name: String,
     val PrettyName: String,
     val Description: String,
-    val Parameters: List<String>
+    val Parameters: List<String>,
+    val ParameterInfos: List<ParameterInfo> = emptyList(),
+    val Outputs: List<String> = emptyList(),
+    val OutputInfos: List<OutputInfo> = emptyList()
+)
+
+data class ModifierInfo(
+    val Name: String,
+    val PrettyName: String,
+    val Description: String,
+    val Parameters: List<String>,
+    val ParameterInfos: List<ParameterInfo> = emptyList(),
+    val Outputs: List<String> = emptyList(),
+    val OutputInfos: List<OutputInfo> = emptyList()
 )
 
 data class LogEntry(
@@ -531,10 +626,13 @@ suspend fun getActionInfo(actionName: String): Result<ActionInfo> {
             if (code in 200..299) {
                 val jo = JSONObject(respText)
                 val actionInfo = ActionInfo(
-                    jo.optString("Name", ""),
-                    jo.optString("PrettyName", ""),
-                    jo.optString("Description", ""),
-                    jsonArrayToList(jo.optJSONArray("Parameters"))
+                    Name = jo.optString("Name", ""),
+                    PrettyName = jo.optString("PrettyName", ""),
+                    Description = jo.optString("Description", ""),
+                    Parameters = jsonArrayToList(jo.optJSONArray("Parameters")),
+                    ParameterInfos = jsonArrayToParameterList(jo.optJSONArray("Parameters")),
+                    Outputs = jsonArrayToList(jo.optJSONArray("Outputs")),
+                    OutputInfos = jsonArrayToOutputList(jo.optJSONArray("Outputs"), "action")
                 )
                 Result.success(actionInfo)
             } else {
@@ -567,10 +665,13 @@ suspend fun getReactionInfo(reactionName: String): Result<ReactionInfo> {
             if (code in 200..299) {
                 val jo = JSONObject(respText)
                 val reactionInfo = ReactionInfo(
-                    jo.optString("Name", ""),
-                    jo.optString("PrettyName", ""),
-                    jo.optString("Description", ""),
-                    jsonArrayToList(jo.optJSONArray("Parameters"))
+                    Name = jo.optString("Name", ""),
+                    PrettyName = jo.optString("PrettyName", ""),
+                    Description = jo.optString("Description", ""),
+                    Parameters = jsonArrayToList(jo.optJSONArray("Parameters")),
+                    ParameterInfos = jsonArrayToParameterList(jo.optJSONArray("Parameters")),
+                    Outputs = jsonArrayToList(jo.optJSONArray("Outputs")),
+                    OutputInfos = jsonArrayToOutputList(jo.optJSONArray("Outputs"), "reaction")
                 )
                 Result.success(reactionInfo)
             } else {
@@ -578,6 +679,84 @@ suspend fun getReactionInfo(reactionName: String): Result<ReactionInfo> {
             }
         } catch (e: Exception) {
             Log.e("WorkflowApi", "getReactionInfo error", e)
+            Result.failure(e)
+        }
+    }
+}
+
+suspend fun getAllModifiers(): Result<List<String>> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL(ApiRoutes.BASE + ApiRoutes.MODIFIERS)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val code = conn.responseCode
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "GET ${ApiRoutes.MODIFIERS} -> code=$code resp=$respText")
+
+            if (code in 200..299) {
+                val jo = JSONObject(respText)
+                val arr = jo.optJSONArray("ModifiersName")
+                if (arr != null) {
+                    val modifiers = mutableListOf<String>()
+                    for (i in 0 until arr.length()) {
+                        modifiers.add(arr.optString(i, ""))
+                    }
+                    Result.success(modifiers)
+                } else {
+                    Result.success(emptyList())
+                }
+            } else {
+                Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("WorkflowApi", "getAllModifiers error", e)
+            Result.failure(e)
+        }
+    }
+}
+
+suspend fun getModifierInfo(modifierName: String): Result<ModifierInfo> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL(ApiRoutes.BASE + ApiRoutes.MODIFIERS + modifierName)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val code = conn.responseCode
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "GET ${ApiRoutes.MODIFIERS}$modifierName -> code=$code resp=$respText")
+
+            if (code in 200..299) {
+                val jo = JSONObject(respText)
+                val modifierInfo = ModifierInfo(
+                    Name = jo.optString("Name", ""),
+                    PrettyName = jo.optString("PrettyName", ""),
+                    Description = jo.optString("Description", ""),
+                    Parameters = jsonArrayToList(jo.optJSONArray("Parameters")),
+                    ParameterInfos = jsonArrayToParameterList(jo.optJSONArray("Parameters")),
+                    Outputs = jsonArrayToList(jo.optJSONArray("Outputs")),
+                    OutputInfos = jsonArrayToOutputList(jo.optJSONArray("Outputs"), "modifier")
+                )
+                Result.success(modifierInfo)
+            } else {
+                Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("WorkflowApi", "getModifierInfo error", e)
             Result.failure(e)
         }
     }
@@ -608,7 +787,6 @@ suspend fun fetchWorkflowLogs(token: String? = null, workflowId: Int): Result<Li
                         val jo = JSONObject(respText)
                         val arr = jo.optJSONArray("Logs")
                         if (arr != null) {
-                            Log.d("WorkflowApi", "Parsing ${arr.length()} logs from: $respText")
                             for (i in 0 until arr.length()) {
                                 try {
                                     val logJo = arr.getJSONObject(i)
@@ -619,12 +797,10 @@ suspend fun fetchWorkflowLogs(token: String? = null, workflowId: Int): Result<Li
                                     )
                                     logs.add(log)
                                 } catch (e: Exception) {
-                                    Log.e("WorkflowApi", "Failed to parse log $i", e)
                                 }
                             }
                         }
                     } catch (e: Exception) {
-                        Log.w("WorkflowApi", "Failed to parse logs response: $respText", e)
                     }
                 }
                 Result.success(logs)

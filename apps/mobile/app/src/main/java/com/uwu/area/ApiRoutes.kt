@@ -10,6 +10,7 @@ object ApiRoutes {
     const val WORKFLOW_LOGS = "/logs/workflow/"
     const val ACTIONS = "/action/"
     const val REACTIONS = "/reaction/"
+    const val MODIFIERS = "/modifiers/"
     const val GITHUB_INIT = "/providers/github/auth/init"
     const val GITHUB_CHECK = "/providers/github/auth/check"
 }
