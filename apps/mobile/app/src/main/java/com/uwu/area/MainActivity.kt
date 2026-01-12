@@ -5,15 +5,23 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.uwu.area.ui.theme.AreaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -84,65 +92,145 @@ fun AppContent() {
             drawerState = drawerState,
             drawerContent = {
                 ModalDrawerSheet(
-                    modifier = Modifier.width(280.dp),
-                    drawerContainerColor = Color(0xFFF5F5F5)
+                    modifier = Modifier.width(300.dp),
+                    drawerContainerColor = MaterialTheme.colorScheme.surface,
+                    drawerShape = RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp)
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .padding(16.dp)
+                            .padding(24.dp)
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            com.uwu.area.ui.theme.Blue2734bd,
+                                            com.uwu.area.ui.theme.Blue2734bd,
+                                            com.uwu.area.ui.theme.Blue2734bd
+                                        )
+                                    )
+                                )
+                                .padding(20.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "AREA",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        if (email != null) {
+                            val emailValue = email!!
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    com.uwu.area.ui.theme.Blue2734bd,
+                                                    com.uwu.area.ui.theme.Blue2734bd
+                                                )
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = emailValue.first().uppercase(),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Welcome back!",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = emailValue,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(24.dp))
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            NavigationDrawerItem(
+                                label = {
+                                    Text(
+                                        text = "Home",
+                                        fontWeight = if (currentScreen == Screen.HOME) FontWeight.Bold else FontWeight.Normal,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                selected = currentScreen == Screen.HOME,
+                                onClick = {
+                                    currentScreen = Screen.HOME
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
+
+                            NavigationDrawerItem(
+                                label = {
+                                    Text(
+                                        text = "Workflows",
+                                        fontWeight = if (currentScreen == Screen.WORKFLOWS) FontWeight.Bold else FontWeight.Normal,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                },
+                                selected = currentScreen == Screen.WORKFLOWS,
+                                onClick = {
+                                    currentScreen = Screen.WORKFLOWS
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(modifier = Modifier.height(16.dp))
 
                         NavigationDrawerItem(
                             label = {
-                                Text(
-                                    text = "Home",
-                                    fontWeight = if (currentScreen == Screen.HOME) FontWeight.Bold else FontWeight.Normal,
-                                    color = Color(0xFF1F2937)
-                                )
-                            },
-                            selected = currentScreen == Screen.HOME,
-                            onClick = {
-                                currentScreen = Screen.HOME
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = Color(0xFFE5E7EB),
-                                unselectedContainerColor = Color.Transparent
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        NavigationDrawerItem(
-                            label = {
-                                Text(
-                                    text = "Workflows",
-                                    fontWeight = if (currentScreen == Screen.WORKFLOWS) FontWeight.Bold else FontWeight.Normal,
-                                    color = Color(0xFF1F2937)
-                                )
-                            },
-                            selected = currentScreen == Screen.WORKFLOWS,
-                            onClick = {
-                                currentScreen = Screen.WORKFLOWS
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = Color(0xFFE5E7EB),
-                                unselectedContainerColor = Color.Transparent
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        NavigationDrawerItem(
-                            label = {
-                                Text(
-                                    text = "Log out",
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFFDC2626)
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.Logout,
+                                        contentDescription = "Logout",
+                                        tint = com.uwu.area.ui.theme.ErrorRed,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = "Sign Out",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = com.uwu.area.ui.theme.ErrorRed
+                                    )
+                                }
                             },
                             selected = false,
                             onClick = {
@@ -152,7 +240,8 @@ fun AppContent() {
                             colors = NavigationDrawerItemDefaults.colors(
                                 selectedContainerColor = Color.Transparent,
                                 unselectedContainerColor = Color.Transparent
-                            )
+                            ),
+                            modifier = Modifier.clip(RoundedCornerShape(12.dp))
                         )
                     }
                 }
@@ -185,7 +274,7 @@ fun AppContent() {
                         Screen.WORKFLOWS -> {
                             when {
                                 editWorkflow != null -> {
-                                    EditWorkflowScreen(
+                                    NewEditWorkflowScreen(
                                         token = token,
                                         workflow = editWorkflow!!,
                                         onClose = { editWorkflow = null },
@@ -204,7 +293,7 @@ fun AppContent() {
                                     )
                                 }
                                 showCreate -> {
-                                    CreateWorkflowScreen(
+                                    NewCreateWorkflowScreen(
                                         token = token,
                                         onClose = { showCreate = false },
                                         onSaved = { _ ->

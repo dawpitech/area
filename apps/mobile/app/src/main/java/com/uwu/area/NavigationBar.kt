@@ -1,15 +1,20 @@
 package com.uwu.area
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.uwu.area.ui.theme.*
 
 enum class Screen {
     HOME, WORKFLOWS
@@ -23,7 +28,7 @@ fun NavigationBar(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color(0xFF2563EB),
+        color = Blue2734bd,
         shadowElevation = 4.dp
     ) {
         Row(
@@ -33,13 +38,11 @@ fun NavigationBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = onMenuClick
-            ) {
+            IconButton(onClick = onMenuClick) {
                 Icon(
                     imageVector = Icons.Default.Menu,
                     contentDescription = "Menu",
-                    tint = Color.White
+                    tint = White
                 )
             }
 
@@ -47,7 +50,7 @@ fun NavigationBar(
                 Text(
                     text = "Logged in as: $email",
                     fontSize = 12.sp,
-                    color = Color.White
+                    color = White
                 )
             }
         }

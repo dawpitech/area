@@ -3,24 +3,31 @@ package com.uwu.area
 import android.content.Context.MODE_PRIVATE
 import android.content.Intent
 import android.util.Log
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Close
+import com.uwu.area.ui.theme.Black
+import com.uwu.area.ui.theme.White
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -222,25 +229,44 @@ fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String, email
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(text = "Sign In", color = Color.White)
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email", color = Color.White) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password", color = Color.White) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = {
-                if (loading) return@Button
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Sign In",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        com.uwu.area.ui.components.SimpleTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = "Email",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        com.uwu.area.ui.components.SimpleTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = "Password",
+            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = PasswordVisualTransformation()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        com.uwu.area.ui.components.SimpleButton(
+            onClick = {
+                if (loading) return@SimpleButton
                 loading = true
                 error = null
                 scope.launch {
@@ -256,17 +282,22 @@ fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String, email
                         error = e.message ?: "Unknown error"
                     })
                 }
-            }) {
-                Text(text = if (loading) "Signing in..." else "Sign In")
-            }
-            TextButton(onClick = onSwitchToSignUp) {
-                Text("Create account", color = Color.White)
-            }
+            },
+            enabled = !loading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = if (loading) "Signing in..." else "Sign In")
         }
 
-        if (error != null) {
-            ErrorPopup(message = error!!, onDismiss = { error = null })
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextButton(onClick = onSwitchToSignUp) {
+            Text("Create account")
         }
+    }
+
+    if (error != null) {
+        ErrorPopup(message = error!!, onDismiss = { error = null })
     }
 }
 
@@ -278,25 +309,44 @@ fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String, email
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(text = "Sign Up", color = Color.White)
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email", color = Color.White) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password", color = Color.White) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = {
-                if (loading) return@Button
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Sign Up",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        com.uwu.area.ui.components.SimpleTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = "Email",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        com.uwu.area.ui.components.SimpleTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = "Password",
+            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = PasswordVisualTransformation()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        com.uwu.area.ui.components.SimpleButton(
+            onClick = {
+                if (loading) return@SimpleButton
                 loading = true
                 error = null
                 scope.launch {
@@ -327,17 +377,22 @@ fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String, email
                         error = res.exceptionOrNull()?.message ?: "Signup failed"
                     }
                 }
-            }) {
-                Text(text = if (loading) "Signing up..." else "Sign Up")
-            }
-            TextButton(onClick = onSwitchToSignIn) {
-                Text("Already have an account? Sign in", color = Color.White)
-            }
+            },
+            enabled = !loading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = if (loading) "Signing up..." else "Sign Up")
         }
 
-        if (error != null) {
-            ErrorPopup(message = error!!, onDismiss = { error = null })
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextButton(onClick = onSwitchToSignIn) {
+            Text("Already have an account? Sign in")
         }
+    }
+
+    if (error != null) {
+        ErrorPopup(message = error!!, onDismiss = { error = null })
     }
 }
 

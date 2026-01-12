@@ -45,16 +45,22 @@ suspend fun fetchWorkflows(token: String? = null): Result<List<Workflow>> {
                                 val workflowId = jo.getWorkflowId()
                                 val workflowName = jo.optString("Name", "")
                                 val workflowActive = jo.optBoolean("Active", false)
-                                Log.d("WorkflowApi", "Parsed workflow $i: ID=$workflowId, Name='$workflowName', Active=$workflowActive")
+                                val actionName = jo.optString("ActionName", "")
+                                val modifierName = jo.optString("ModifierName", "")
+                                val reactionName = jo.optString("ReactionName", "")
+                                val actionParams = jsonObjectToList(jo.optJSONObject("ActionParameters"))
+                                val modifierParams = jsonObjectToList(jo.optJSONObject("ModifierParameters"))
+                                val reactionParams = jsonObjectToList(jo.optJSONObject("ReactionParameters"))
+                                Log.d("WorkflowApi", "Parsed workflow $i: ID=$workflowId, Name='$workflowName', Action='$actionName', Modifier='$modifierName', Reaction='$reactionName', Active=$workflowActive")
                                 val wp = Workflow(
                                     ID = workflowId,
                                     Name = workflowName,
-                                    ActionName = "",
-                                    ActionParameters = emptyList(),
-                                    ModifierName = "",
-                                    ModifierParameters = emptyList(),
-                                    ReactionName = "",
-                                    ReactionParameters = emptyList(),
+                                    ActionName = actionName,
+                                    ActionParameters = actionParams,
+                                    ModifierName = modifierName,
+                                    ModifierParameters = modifierParams,
+                                    ReactionName = reactionName,
+                                    ReactionParameters = reactionParams,
                                     Active = workflowActive
                                 )
                                 list.add(wp)
@@ -194,6 +200,89 @@ suspend fun deleteWorkflowApi(token: String? = null, id: Int?): Result<Unit> {
             if (code in 200..299) Result.success(Unit)
             else Result.failure(Exception(respText.ifBlank { "Delete failed" }))
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+
+suspend fun toggleWorkflowActiveApi(
+    token: String? = null,
+    workflowId: Int,
+    active: Boolean
+): Result<Workflow> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val currentWorkflowResult = getWorkflowDetails(token, workflowId)
+            if (currentWorkflowResult.isFailure) {
+                return@withContext currentWorkflowResult
+            }
+
+            val currentWorkflow = currentWorkflowResult.getOrNull()!!
+            Log.d("WorkflowApi", "Toggling workflow $workflowId from ${currentWorkflow.Active} to $active")
+
+            val url = URL(ApiRoutes.BASE + ApiRoutes.WORKFLOWS + "$workflowId")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "PATCH"
+                setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                if (!token.isNullOrBlank()) setRequestProperty("Authorization", "Bearer $token")
+                doOutput = true
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val body = JSONObject().apply {
+                put("ActionName", currentWorkflow.ActionName)
+                put("ActionParameters", listToJSONObject(currentWorkflow.ActionParameters))
+                put("ModifierName", currentWorkflow.ModifierName)
+                put("ModifierParameters", listToJSONObject(currentWorkflow.ModifierParameters))
+                put("ReactionName", currentWorkflow.ReactionName)
+                put("ReactionParameters", listToJSONObject(currentWorkflow.ReactionParameters))
+                put("Active", active)
+                put("Name", currentWorkflow.Name)
+            }.toString()
+
+            conn.outputStream.use { os: OutputStream ->
+                os.write(body.toByteArray(Charsets.UTF_8))
+                os.flush()
+            }
+
+            val code = conn.responseCode
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("WorkflowApi", "PATCH ${ApiRoutes.WORKFLOWS}$workflowId -> code=$code resp=$respText")
+
+            if (code in 200..299) {
+                val jo = JSONObject(respText)
+                val updatedWorkflowId = jo.getWorkflowId()
+                val workflowName = jo.optString("Name", "")
+                val actionName = jo.optString("ActionName", "")
+                val modifierName = jo.optString("ModifierName", "")
+                val reactionName = jo.optString("ReactionName", "")
+                val workflowActive = jo.optBoolean("Active", false)
+                Log.d("WorkflowApi", "toggleWorkflowActiveApi for ID $updatedWorkflowId returned: Name='$workflowName', Action='$actionName', Modifier='$modifierName', Reaction='$reactionName', Active=$workflowActive")
+
+                val actionParams = jsonObjectToList(jo.optJSONObject("ActionParameters"))
+                val modifierParams = jsonObjectToList(jo.optJSONObject("ModifierParameters"))
+                val reactionParams = jsonObjectToList(jo.optJSONObject("ReactionParameters"))
+                val workflow = Workflow(
+                    ID = updatedWorkflowId,
+                    Name = workflowName,
+                    ActionName = actionName,
+                    ActionParameters = actionParams,
+                    ModifierName = modifierName,
+                    ModifierParameters = modifierParams,
+                    ReactionName = reactionName,
+                    ReactionParameters = reactionParams,
+                    Active = workflowActive
+                )
+                Result.success(workflow)
+            } else {
+                Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("WorkflowApi", "toggleWorkflowActiveApi error", e)
             Result.failure(e)
         }
     }
