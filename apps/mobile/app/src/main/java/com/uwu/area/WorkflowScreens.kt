@@ -181,7 +181,6 @@ fun WorkflowListScreen(
                                                         if (index != -1) {
                                                             val newList = workflows.toMutableList()
                                                             newList.removeAt(index)
-                                                            newList[index] = wf.copy(Active = false) // Mark as deleted
                                                             workflows = newList
                                                             onDeleted(workflowId)
                                                         }
