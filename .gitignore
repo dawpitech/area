@@ -1,3 +1,4 @@
 .env
 .idea
+apps/mobile/output/
 apps/mobile/app/release/

@@ -1,4 +1,4 @@
-FROM thyrlian/android-sdk:10.0 AS base
+FROM thyrlian/android-sdk:latest AS base
 
 WORKDIR /app
 
@@ -12,6 +12,7 @@ COPY --from=sdk-update /opt/android-sdk /opt/android-sdk
 COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY gradle/ gradle/
 COPY app/build.gradle.kts app/
+COPY app/release.keystore app/
 COPY gradlew .
 
 RUN ./gradlew dependencies --no-daemon
@@ -22,4 +23,4 @@ COPY . .
 
 RUN ./gradlew assembleRelease --no-daemon
 
-CMD ["sh", "-c", "cp app/build/outputs/apk/debug/app-debug.apk /output/client.apk && echo APK copied to /output/client.apk"]
+CMD ["sh", "-c", "cp app/build/outputs/apk/release/app-release.apk /output/client.apk && echo Release APK copied to /output/client.apk"]
