@@ -9,16 +9,27 @@ import (
 )
 
 var Provider = models.Service{
-	Name:    "Github",
-	Icon:    "",
-	Actions: []models.Action{},
+	Name:      "Github",
+	Actions:   nil,
+	Modifiers: nil,
 	Reactions: []models.Reaction{
 		{
 			Name:        "github_create_issue",
 			PrettyName:  "Create an issue",
 			Description: "Create an issue on a github repository",
-			Parameters: []string{
-				"target_repository",
+			Parameters: []models.Parameter{
+				{
+					Name:       "target_repository",
+					PrettyName: "Target repository",
+				},
+				{
+					Name:       "issue_name",
+					PrettyName: "Issue name",
+				},
+				{
+					Name:       "issue_content",
+					PrettyName: "Issue content",
+				},
 			},
 			Handler: HandlerCreateAnIssue,
 		},

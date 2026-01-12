@@ -20,15 +20,18 @@ func init() {
 
 var Provider = models.Service{
 	Name: "Timer",
-	Icon: "",
 	Actions: []models.Action{
 		{
 			Name:        "timer_cron_job",
 			PrettyName:  "Repeat every",
 			Description: "Trigger a workflow every x amount of time",
-			Parameters: []string{
-				"cron",
+			Parameters: []models.Parameter{
+				{
+					Name:       "cron",
+					PrettyName: "Cron tab",
+				},
 			},
+			Outputs:       nil,
 			SetupTrigger:  TriggerLaunchNewCronJob,
 			RemoveTrigger: RemoveLaunchNewCronJob,
 		}, /*
@@ -42,7 +45,8 @@ var Provider = models.Service{
 				SetupTrigger: TriggerLaunchAtJob,
 			},*/
 	},
-	Reactions:  []models.Reaction{},
+	Modifiers:  nil,
+	Reactions:  nil,
 	AuthMethod: nil,
-	DBModels:   []interface{}{},
+	DBModels:   nil,
 }

@@ -2,36 +2,40 @@ package placeholder
 
 import "dawpitech/area/models"
 
-func HandlerEmpty(_ models.HandlerContext) error {
-	return nil
-}
-
-func TriggerEmpty(_ models.TriggerContext) error {
+func HandlerEmpty(_ models.Context) error {
 	return nil
 }
 
 var Provider = models.Service{
 	Name: "Placeholder",
-	Icon: "",
 	Actions: []models.Action{
 		{
-			Name:          "action_none",
+			Name:          "none_action",
 			PrettyName:    "None",
 			Description:   "Empty action, will never activate",
-			Parameters:    []string{},
-			SetupTrigger:  TriggerEmpty,
-			RemoveTrigger: TriggerEmpty,
+			Parameters:    nil,
+			SetupTrigger:  HandlerEmpty,
+			RemoveTrigger: HandlerEmpty,
+		},
+	},
+	Modifiers: []models.Modifier{
+		{
+			Name:        "none_modifier",
+			PrettyName:  "None",
+			Description: "Empty modifier",
+			Parameters:  nil,
+			Handler:     HandlerEmpty,
 		},
 	},
 	Reactions: []models.Reaction{
 		{
-			Name:        "reaction_none",
+			Name:        "none_reaction",
 			PrettyName:  "None",
 			Description: "Empty reaction",
-			Parameters:  []string{},
+			Parameters:  nil,
 			Handler:     HandlerEmpty,
 		},
 	},
 	AuthMethod: nil,
-	DBModels:   []interface{}{},
+	DBModels:   nil,
 }

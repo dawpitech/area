@@ -1,23 +1,23 @@
 package models
 
-type HandlerContext struct {
+type Handler func(Context) error
+
+type Context struct {
 	OwnerUserID        uint
 	WorkflowID         uint
+	ActionName         string
+	ActionParameters   map[string]string
+	ModifierName       string
+	ModifierParameters map[string]string
+	ModifierHandler    Handler
+	ReactionName       string
 	ReactionParameters map[string]string
+	ReactionHandler    Handler
 }
 
-type TriggerContext struct {
-	OwnerUserID      uint
-	WorkflowID       uint
-	ActionParameters map[string]string
-	ReactionContext  HandlerContext
-	ReactionHandler  HandlerCallback
-}
-
-type HandlerCallback func(HandlerContext) error
-type TriggerSetup func(TriggerContext) error
-
-type Trigger struct {
+type Parameter struct {
+	Name       string
+	PrettyName string
 }
 
 type Authentification struct {
@@ -30,23 +30,33 @@ type Action struct {
 	Name          string
 	PrettyName    string
 	Description   string
-	Parameters    []string
-	SetupTrigger  TriggerSetup
-	RemoveTrigger TriggerSetup
+	Parameters    []Parameter
+	Outputs       []Parameter
+	SetupTrigger  Handler
+	RemoveTrigger Handler
+}
+
+type Modifier struct {
+	Name        string
+	PrettyName  string
+	Description string
+	Parameters  []Parameter
+	Outputs     []Parameter
+	Handler     Handler
 }
 
 type Reaction struct {
 	Name        string
 	PrettyName  string
 	Description string
-	Parameters  []string
-	Handler     HandlerCallback
+	Parameters  []Parameter
+	Handler     Handler
 }
 
 type Service struct {
 	Name       string
-	Icon       string
 	Actions    []Action
+	Modifiers  []Modifier
 	Reactions  []Reaction
 	AuthMethod *Authentification
 	DBModels   []interface{}

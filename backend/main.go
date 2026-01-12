@@ -1,7 +1,7 @@
 package main
 
 import (
-	"dawpitech/area/engines"
+	"dawpitech/area/engines/workflowEngine"
 	"dawpitech/area/initializers"
 	"dawpitech/area/services"
 	"github.com/gin-contrib/cors"
@@ -17,7 +17,7 @@ func init() {
 	initializers.LoadEnvironment()
 	initializers.ConnectDB()
 	services.Init()
-	engines.ReloadWorkflowTrigger()
+	workflowEngine.ReloadWorkflowTrigger()
 }
 
 func main() {

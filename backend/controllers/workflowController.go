@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"dawpitech/area/engines"
+	"dawpitech/area/engines/workflowEngine"
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
 	"dawpitech/area/models/routes"
@@ -88,7 +88,7 @@ func CheckWorkflow(_ *gin.Context, in *routes.CheckWorkflowRequest) (*routes.Che
 		ReactionParameters: in.ReactionParameters,
 	}
 
-	err, ok := engines.ValidateWorkflow(workflow)
+	err, ok := workflowEngine.ValidateWorkflow(workflow)
 	if !ok {
 		return &routes.CheckWorkflowResponse{
 			SyntaxValid: false,
@@ -123,7 +123,7 @@ func DeleteWorkflow(c *gin.Context, in *routes.WorkflowID) error {
 	}
 
 	if workflow.Active {
-		if err, ok := engines.DisableWorkflowTrigger(workflow); !ok {
+		if err, ok := workflowEngine.DisableWorkflowTrigger(workflow); !ok {
 			log.Print(err.Error())
 			return err
 		}
@@ -154,7 +154,7 @@ func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*routes.GetWo
 	}
 
 	if workflow.Active {
-		if err, ok := engines.DisableWorkflowTrigger(workflow); !ok {
+		if err, ok := workflowEngine.DisableWorkflowTrigger(workflow); !ok {
 			log.Print(err.Error())
 			return nil, err
 		}
@@ -171,7 +171,7 @@ func EditWorkflow(c *gin.Context, in *routes.EditWorkflowRequest) (*routes.GetWo
 		return nil, errors.New("Internal server error")
 	}
 	if in.Active {
-		if err, ok := engines.SetupWorkflowTrigger(workflow); !ok {
+		if err, ok := workflowEngine.SetupWorkflowTrigger(workflow); !ok {
 			log.Print(err.Error())
 			workflow.Active = false
 			if rst := initializers.DB.Save(&workflow); rst.Error != nil {

@@ -6,6 +6,7 @@ import (
 	"dawpitech/area/services/github"
 	"dawpitech/area/services/placeholder"
 	"dawpitech/area/services/timer"
+	"dawpitech/area/stores"
 	"fmt"
 	"github.com/loopfz/gadgeto/tonic"
 	"github.com/wI2L/fizz"
@@ -19,22 +20,20 @@ var Services = []models.Service{
 	placeholder.Provider,
 }
 
-var ActionStore = make(map[string]models.Action)
-var ReactionStore = make(map[string]models.Reaction)
-
-var ActionList []models.Action
-var ReactionList []models.Reaction
-
 func Init() {
 	for i := 0; i < len(Services); i++ {
 		service := Services[i]
 		for x := 0; x < len(service.Actions); x++ {
-			ActionStore[service.Actions[x].Name] = service.Actions[x]
-			ActionList = append(ActionList, service.Actions[x])
+			stores.ActionStore[service.Actions[x].Name] = service.Actions[x]
+			stores.ActionList = append(stores.ActionList, service.Actions[x])
 		}
 		for x := 0; x < len(service.Reactions); x++ {
-			ReactionStore[service.Reactions[x].Name] = service.Reactions[x]
-			ReactionList = append(ReactionList, service.Reactions[x])
+			stores.ReactionStore[service.Reactions[x].Name] = service.Reactions[x]
+			stores.ReactionList = append(stores.ReactionList, service.Reactions[x])
+		}
+		for x := 0; x < len(service.Modifiers); x++ {
+			stores.ModifierStore[service.Modifiers[x].Name] = service.Modifiers[x]
+			stores.ModifierList = append(stores.ModifierList, service.Modifiers[x])
 		}
 	}
 }

@@ -21,7 +21,7 @@ type IssueRequest struct {
 	Labels    []string `json:"labels,omitempty"`
 }
 
-func HandlerCreateAnIssue(ctx models.HandlerContext) error {
+func HandlerCreateAnIssue(ctx models.Context) error {
 	var count int64
 	if rst := initializers.DB.
 		Model(&ProviderGithubAuthData{}).
@@ -44,14 +44,13 @@ func HandlerCreateAnIssue(ctx models.HandlerContext) error {
 	token := OwnerOAuth2Access.AccessToken
 
 	reqBody := IssueRequest{
-		Title: "Test issue",
-		Body:  "Please ignore",
+		Title: ctx.ReactionParameters["issue_name"],
+		Body:  ctx.ReactionParameters["issue_content"],
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
 		log.Fatal(err.Error())
-		return errors.New("Request body cannot be converted to JSON, please fix.")
 	}
 
 	url := fmt.Sprintf("https://api.github.com/repos/%s/issues", ctx.ReactionParameters["target_repository"])

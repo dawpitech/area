@@ -1,15 +1,13 @@
 package timer
 
 import (
-	logEngine "dawpitech/area/engines/logEngine"
+	"dawpitech/area/engines/workflowEngine"
 	"dawpitech/area/models"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/juju/errors"
-	"log"
-	"strconv"
-	"strings"
 )
 
+/*
 func TriggerLaunchAtJob(ctx models.TriggerContext) error {
 	time := strings.Split(ctx.ActionParameters["cron"], ":")
 
@@ -45,8 +43,9 @@ func TriggerLaunchAtJob(ctx models.TriggerContext) error {
 
 	return nil
 }
+*/
 
-func RemoveLaunchNewCronJob(ctx models.TriggerContext) error {
+func RemoveLaunchNewCronJob(ctx models.Context) error {
 	err := scheduler.RemoveJob(workflowJobUUID[ctx.WorkflowID])
 	if err != nil {
 		return errors.New("Removal of given job resulted in an error. Err " + err.Error())
@@ -55,21 +54,11 @@ func RemoveLaunchNewCronJob(ctx models.TriggerContext) error {
 	return nil
 }
 
-func TriggerLaunchNewCronJob(ctx models.TriggerContext) error {
+func TriggerLaunchNewCronJob(ctx models.Context) error {
 	crontab := ctx.ActionParameters["cron"]
 	job, err := scheduler.NewJob(
 		gocron.CronJob(crontab, false),
-		gocron.NewTask(
-			func() {
-				log.Printf("Workflow #%d was triggered.\n", ctx.WorkflowID)
-				err := ctx.ReactionHandler(ctx.ReactionContext)
-				if err != nil {
-					logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, err.Error())
-				} else {
-					logEngine.NewLogEntry(ctx.WorkflowID, models.InfoLog, "Workflow execution was successful.")
-				}
-			},
-		),
+		gocron.NewTask(workflowEngine.RunWorkflow, ctx),
 	)
 
 	if err != nil {
