@@ -161,7 +161,7 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 	infos := &openapi.Info{
 		Title:       "Area API",
 		Description: "TODO",
-		Version:     "0.2.0",
+		Version:     "0.3.0",
 	}
 	fizzRouter.GET("/openapi.json", nil, fizzRouter.OpenAPI(infos, "json"))
 
