@@ -24,10 +24,21 @@ func ValidateWorkflow(workflow models.Workflow) (error, bool) {
 	if !reaPresent {
 		return errors.New("Provided reaction doesnt exist."), false
 	}
+	modifier, modPresent := stores.ModifierStore[workflow.ModifierName]
+	if !modPresent {
+		return errors.New("Provided modifier doesnt exist."), false
+	}
+
 	for i := 0; i < len(action.Parameters); i++ {
 		_, ok := workflow.ActionParameters[action.Parameters[i].Name]
 		if !ok {
 			return errors.New("Not enough parameters given to chosen action."), false
+		}
+	}
+	for i := 0; i < len(modifier.Parameters); i++ {
+		_, ok := workflow.ModifierParameters[modifier.Parameters[i].Name]
+		if !ok {
+			return errors.New("Not enough parameters given to chosen modifier."), false
 		}
 	}
 	for i := 0; i < len(reaction.Parameters); i++ {
@@ -36,6 +47,7 @@ func ValidateWorkflow(workflow models.Workflow) (error, bool) {
 			return errors.New("Not enough parameters given to chosen reaction."), false
 		}
 	}
+
 	return nil, true
 }
 
@@ -108,6 +120,7 @@ func DisableWorkflowTrigger(workflow models.Workflow) (error, bool) {
 
 func RunWorkflow(ctx models.Context) {
 	log.Printf("Workflow #%d was triggered.\n", ctx.WorkflowID)
+	ctx.RuntimeData = make(map[string]string)
 	err := ctx.ModifierHandler(ctx)
 	if err != nil {
 		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, err.Error())

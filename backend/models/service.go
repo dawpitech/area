@@ -13,6 +13,7 @@ type Context struct {
 	ReactionName       string
 	ReactionParameters map[string]string
 	ReactionHandler    Handler
+	RuntimeData        map[string]string
 }
 
 type Parameter struct {
