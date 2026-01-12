@@ -28,5 +28,6 @@ func GetActionInfo(_ *gin.Context, in *routes.RequestGetActionInfo) (*routes.Res
 		PrettyName:  action.PrettyName,
 		Description: action.Description,
 		Parameters:  action.Parameters,
+		Outputs:     action.Outputs,
 	}, nil
 }

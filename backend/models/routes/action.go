@@ -11,6 +11,7 @@ type ResponseGetActionInfo struct {
 	PrettyName  string
 	Description string
 	Parameters  []models.Parameter
+	Outputs     []models.Parameter
 }
 
 type GetAllActionResponse struct {
