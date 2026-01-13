@@ -1,7 +1,7 @@
 package com.uwu.area
 
 object ApiRoutes {
-    const val BASE = "http://100.78.22.73:8080"
+    const val BASE = "https://api.area.dawoox.dev"
     const val SIGNIN = "/auth/sign-in"
     const val SIGNUP = "/auth/signup"
 
