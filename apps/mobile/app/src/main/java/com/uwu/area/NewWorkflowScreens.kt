@@ -24,11 +24,19 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.uwu.area.ui.theme.Blue2734bd
 import com.uwu.area.ui.theme.ActiveGreen
 import com.uwu.area.ui.theme.ErrorRed
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 
 data class WorkflowState(
     val id: Int? = null,
@@ -55,7 +63,7 @@ fun NewCreateWorkflowScreen(
     val workflowState = remember { mutableStateOf(WorkflowState()) }
 
     var currentStep by remember { mutableStateOf(0) }
-    val totalSteps = 4 // Name, Action, Modifier, Reaction
+    val totalSteps = 4
 
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -92,7 +100,7 @@ fun NewCreateWorkflowScreen(
                     }
                 },
                 actions = {
-                    if (currentStep == totalSteps - 1) { // Only show Save on the last step
+                    if (currentStep == totalSteps - 1) {
                         TextButton(
                             onClick = {
                                 if (loading) return@TextButton
@@ -201,7 +209,7 @@ fun NewCreateWorkflowScreen(
                             Text("Previous")
                         }
                     } else {
-                        Spacer(modifier = Modifier.weight(1f)) // Push Next to the right
+                        Spacer(modifier = Modifier.weight(1f))
                     }
 
                     if (currentStep < totalSteps - 1) {
@@ -238,7 +246,7 @@ fun NewEditWorkflowScreen(
     )) }
 
     var currentStep by remember { mutableStateOf(0) }
-    val totalSteps = 4 // Name, Action, Modifier, Reaction
+    val totalSteps = 4
 
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -294,7 +302,8 @@ fun NewEditWorkflowScreen(
                     ParameterValue(
                         paramInfo.Name,
                         paramInfo.PrettyName,
-                        workflowActionParams[paramInfo.Name] ?: ""
+                        workflowActionParams[paramInfo.Name] ?: "",
+                        paramInfo.Type
                     )
                 }?.toMutableList() ?: mutableListOf()
             ),
@@ -304,7 +313,8 @@ fun NewEditWorkflowScreen(
                     ParameterValue(
                         paramInfo.Name,
                         paramInfo.PrettyName,
-                        workflowModifierParams[paramInfo.Name] ?: ""
+                        workflowModifierParams[paramInfo.Name] ?: "",
+                        paramInfo.Type
                     )
                 }?.toMutableList() ?: mutableListOf()
             ),
@@ -314,7 +324,8 @@ fun NewEditWorkflowScreen(
                     ParameterValue(
                         paramInfo.Name,
                         paramInfo.PrettyName,
-                        workflowReactionParams[paramInfo.Name] ?: ""
+                        workflowReactionParams[paramInfo.Name] ?: "",
+                        paramInfo.Type
                     )
                 }?.toMutableList() ?: mutableListOf()
             )
@@ -331,7 +342,7 @@ fun NewEditWorkflowScreen(
                     }
                 },
                 actions = {
-                    if (currentStep == totalSteps - 1) { // Only show Save on the last step
+                    if (currentStep == totalSteps - 1) {
                         TextButton(
                             onClick = {
                                 if (loading) return@TextButton
@@ -440,7 +451,7 @@ fun NewEditWorkflowScreen(
                             Text("Previous")
                         }
                     } else {
-                        Spacer(modifier = Modifier.weight(1f)) // Push Next to the right
+                        Spacer(modifier = Modifier.weight(1f))
                     }
 
                     if (currentStep < totalSteps - 1) {
@@ -533,7 +544,7 @@ fun ActionSelectionStep(
                     DropdownMenuItem(
                         text = { Text(actionInfo.PrettyName) },
                         onClick = {
-                            onWorkflowStateChange(workflowState.copy(selectedActionInfo = actionInfo, actionParams = mutableStateOf(actionInfo.ParameterInfos.map { ParameterValue(it.Name, it.PrettyName, "") })))
+                            onWorkflowStateChange(workflowState.copy(selectedActionInfo = actionInfo, actionParams = mutableStateOf(actionInfo.ParameterInfos.map { ParameterValue(it.Name, it.PrettyName, "", it.Type) })))
                             actionExpanded = false
                         }
                     )
@@ -555,7 +566,7 @@ fun ActionSelectionStep(
                     workflowState.actionParams.value = updatedParams
                     onWorkflowStateChange(workflowState)
                 },
-                availableOutputs = workflowState.allAvailableOutputs.value // TODO: Populate this correctly
+                availableOutputs = workflowState.allAvailableOutputs.value
             )
         }
     }
@@ -607,7 +618,7 @@ fun ModifierSelectionStep(
                     DropdownMenuItem(
                         text = { Text(modifierInfo.PrettyName) },
                         onClick = {
-                            onWorkflowStateChange(workflowState.copy(selectedModifierInfo = modifierInfo, modifierParams = mutableStateOf(modifierInfo.ParameterInfos.map { ParameterValue(it.Name, it.PrettyName, "") })))
+                            onWorkflowStateChange(workflowState.copy(selectedModifierInfo = modifierInfo, modifierParams = mutableStateOf(modifierInfo.ParameterInfos.map { ParameterValue(it.Name, it.PrettyName, "", it.Type) })))
                             modifierExpanded = false
                         }
                     )
@@ -681,7 +692,7 @@ fun ReactionSelectionStep(
                     DropdownMenuItem(
                         text = { Text(reactionInfo.PrettyName) },
                         onClick = {
-                            onWorkflowStateChange(workflowState.copy(selectedReactionInfo = reactionInfo, reactionParams = mutableStateOf(reactionInfo.ParameterInfos.map { ParameterValue(it.Name, it.PrettyName, "") })))
+                            onWorkflowStateChange(workflowState.copy(selectedReactionInfo = reactionInfo, reactionParams = mutableStateOf(reactionInfo.ParameterInfos.map { ParameterValue(it.Name, it.PrettyName, "", it.Type) })))
                             reactionExpanded = false
                         }
                     )
@@ -731,72 +742,135 @@ fun ParameterInputSection(
             )
         } else {
             parameters.forEachIndexed { index, param ->
+                val isDateType = param.type == "date"
                 var outputExpanded by remember { mutableStateOf(false) }
-                val displayValue = if (param.value.startsWith("#")) {
+                val context = LocalContext.current
+                
+                val displayValue = if (isDateType) {
+                    if (param.value.isNotBlank()) {
+                        formatDateForDisplay(param.value)
+                    } else {
+                        ""
+                    }
+                } else if (param.value.startsWith("#")) {
                     availableOutputs.find { it.Name == param.value.substring(1) }?.PrettyName ?: param.value
                 } else {
                     param.value
                 }
+                
                 Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    ExposedDropdownMenuBox(
-                        expanded = outputExpanded,
-                        onExpandedChange = { outputExpanded = !outputExpanded }
-                    ) {
+                    if (isDateType) {
                         OutlinedTextField(
                             value = displayValue,
-                            onValueChange = { newValue ->
-                                val matchingOutput = availableOutputs.find { it.PrettyName == newValue }
-                                val updatedParam = if (matchingOutput != null) {
-                                    param.copy(value = "#${matchingOutput.Name}")
-                                } else {
-                                    param.copy(value = newValue)
-                                }
-                                onParametersChange(parameters.toMutableList().apply { this[index] = updatedParam })
-                            },
+                            onValueChange = { },
+                            readOnly = true,
                             label = { Text(param.prettyName.ifBlank { param.technicalName }) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
+                            modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                             trailingIcon = {
-                                Row {
-                                    if (param.value.startsWith("#")) {
-                                        IconButton(onClick = {
-                                            val updatedParam = param.copy(value = "")
-                                            onParametersChange(parameters.toMutableList().apply { this[index] = updatedParam })
-                                        }) {
-                                            Icon(
-                                                Icons.Filled.Close,
-                                                contentDescription = "Clear output selection"
-                                            )
-                                        }
+                                IconButton(onClick = {
+                                    val calendar = Calendar.getInstance()
+                                    val currentDate = if (param.value.isNotBlank()) {
+                                        parseISO8601Date(param.value) ?: Date()
+                                    } else {
+                                        Date()
                                     }
-                                    if (availableOutputs.isNotEmpty()) {
-                                        IconButton(onClick = { outputExpanded = !outputExpanded }) {
-                                            Icon(
-                                                if (outputExpanded) Icons.Filled.Close else Icons.Filled.ArrowDropDown,
-                                                contentDescription = "Select output"
-                                            )
-                                        }
-                                    }
+                                    calendar.time = currentDate
+                                    
+                                    DatePickerDialog(
+                                        context,
+                                        { _, year, month, dayOfMonth ->
+                                            calendar.set(year, month, dayOfMonth)
+                                            
+                                            TimePickerDialog(
+                                                context,
+                                                { _, hourOfDay, minute ->
+                                                    calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                                                    calendar.set(Calendar.MINUTE, minute)
+                                                    calendar.set(Calendar.SECOND, 0)
+                                                    
+                                                    val formattedDate = formatDateToISO8601(calendar.time)
+                                                    val updatedParam = param.copy(value = formattedDate)
+                                                    onParametersChange(parameters.toMutableList().apply { this[index] = updatedParam })
+                                                },
+                                                calendar.get(Calendar.HOUR_OF_DAY),
+                                                calendar.get(Calendar.MINUTE),
+                                                true
+                                            ).show()
+                                        },
+                                        calendar.get(Calendar.YEAR),
+                                        calendar.get(Calendar.MONTH),
+                                        calendar.get(Calendar.DAY_OF_MONTH)
+                                    ).show()
+                                }) {
+                                    Icon(
+                                        Icons.Filled.DateRange,
+                                        contentDescription = "Select date"
+                                    )
                                 }
                             }
                         )
-                        if (availableOutputs.isNotEmpty()) {
-                            ExposedDropdownMenu(
-                                expanded = outputExpanded,
-                                onDismissRequest = { outputExpanded = false }
-                            ) {
-                                availableOutputs.forEach { output ->
-                                    DropdownMenuItem(
-                                        text = { Text(output.PrettyName) },
-                                        onClick = {
-                                            val updatedParam = param.copy(value = "#${output.Name}")
-                                            onParametersChange(parameters.toMutableList().apply { this[index] = updatedParam })
-                                            outputExpanded = false
+                    } else {
+                        ExposedDropdownMenuBox(
+                            expanded = outputExpanded,
+                            onExpandedChange = { outputExpanded = !outputExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = displayValue,
+                                onValueChange = { newValue ->
+                                    val matchingOutput = availableOutputs.find { it.PrettyName == newValue }
+                                    val updatedParam = if (matchingOutput != null) {
+                                        param.copy(value = "#${matchingOutput.Name}")
+                                    } else {
+                                        param.copy(value = newValue)
+                                    }
+                                    onParametersChange(parameters.toMutableList().apply { this[index] = updatedParam })
+                                },
+                                label = { Text(param.prettyName.ifBlank { param.technicalName }) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                                trailingIcon = {
+                                    Row {
+                                        if (param.value.startsWith("#")) {
+                                            IconButton(onClick = {
+                                                val updatedParam = param.copy(value = "")
+                                                onParametersChange(parameters.toMutableList().apply { this[index] = updatedParam })
+                                            }) {
+                                                Icon(
+                                                    Icons.Filled.Close,
+                                                    contentDescription = "Clear output selection"
+                                                )
+                                            }
                                         }
-                                    )
+                                        if (availableOutputs.isNotEmpty()) {
+                                            IconButton(onClick = { outputExpanded = !outputExpanded }) {
+                                                Icon(
+                                                    if (outputExpanded) Icons.Filled.Close else Icons.Filled.ArrowDropDown,
+                                                    contentDescription = "Select output"
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            )
+                            if (availableOutputs.isNotEmpty()) {
+                                ExposedDropdownMenu(
+                                    expanded = outputExpanded,
+                                    onDismissRequest = { outputExpanded = false }
+                                ) {
+                                    availableOutputs.forEach { output ->
+                                        DropdownMenuItem(
+                                            text = { Text(output.PrettyName) },
+                                            onClick = {
+                                                val updatedParam = param.copy(value = "#${output.Name}")
+                                                onParametersChange(parameters.toMutableList().apply { this[index] = updatedParam })
+                                                outputExpanded = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -805,4 +879,45 @@ fun ParameterInputSection(
             }
         }
     }
+}
+
+fun formatDateToISO8601(date: Date, timeZone: TimeZone = TimeZone.getDefault()): String {
+    val calendar = Calendar.getInstance(timeZone)
+    calendar.time = date
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH) + 1
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+    val hour = calendar.get(Calendar.HOUR_OF_DAY)
+    val minute = calendar.get(Calendar.MINUTE)
+    val second = calendar.get(Calendar.SECOND)
+    
+    val offsetMillis = timeZone.getOffset(date.time)
+    val offsetHours = offsetMillis / (1000 * 60 * 60)
+    val offsetMinutes = Math.abs(offsetMillis / (1000 * 60)) % 60
+    val offsetSign = if (offsetHours >= 0) "+" else "-"
+    val offsetString = String.format("%s%02d:%02d", offsetSign, Math.abs(offsetHours), offsetMinutes)
+    
+    return String.format("%04d-%02d-%02dT%02d:%02d:%02d%s", year, month, day, hour, minute, second, offsetString)
+}
+
+fun parseISO8601Date(dateString: String): Date? {
+    return try {
+        val pattern = "yyyy-MM-dd'T'HH:mm:ssXXX"
+        val sdf = SimpleDateFormat(pattern, Locale.getDefault())
+        sdf.parse(dateString)
+    } catch (e: Exception) {
+        try {
+            val pattern = "yyyy-MM-dd'T'HH:mm:ss"
+            val sdf = SimpleDateFormat(pattern, Locale.getDefault())
+            sdf.parse(dateString)
+        } catch (e2: Exception) {
+            null
+        }
+    }
+}
+
+fun formatDateForDisplay(dateString: String): String {
+    val date = parseISO8601Date(dateString) ?: return dateString
+    val displayFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+    return displayFormat.format(date)
 }

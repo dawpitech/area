@@ -412,7 +412,8 @@ private fun jsonArrayToParameterList(arr: JSONArray?): List<ParameterInfo> {
             if (item != null) {
                 out.add(ParameterInfo(
                     Name = item.optString("Name", ""),
-                    PrettyName = item.optString("PrettyName", "")
+                    PrettyName = item.optString("PrettyName", ""),
+                    Type = item.optString("Type", "string")
                 ))
             }
         } catch (_: Exception) {}
@@ -644,7 +645,8 @@ suspend fun getAllReactions(): Result<List<String>> {
 
 data class ParameterInfo(
     val Name: String,
-    val PrettyName: String
+    val PrettyName: String,
+    val Type: String = "string"
 )
 
 data class OutputInfo(
@@ -656,7 +658,8 @@ data class OutputInfo(
 data class ParameterValue(
     val technicalName: String,
     val prettyName: String,
-    val value: String
+    val value: String,
+    val type: String = "string"
 )
 
 data class ActionInfo(
