@@ -145,14 +145,6 @@ func RunWorkflow(ctx models.Context) {
 }
 
 func GetParam(hdxType HandlerType, paramName string, ctx models.Context) (string, bool) {
-	if len(paramName) == 0 || paramName == "#" {
-		return "", false
-	}
-	if paramName[0] == '#' {
-		value, present := ctx.RuntimeData[paramName[1:]]
-		return value, present
-	}
-
 	var value string
 	var present bool
 	switch hdxType {
@@ -168,5 +160,19 @@ func GetParam(hdxType HandlerType, paramName string, ctx models.Context) (string
 	default:
 		log.Panic("Unknown HandlerType received")
 	}
+
+	if !present {
+		return "", false
+	}
+
+	if len(value) == 0 || value == "#" {
+		return "", false
+	}
+
+	if value[0] == '#' {
+		value, present = ctx.RuntimeData[paramName[1:]]
+		return value, present
+	}
+
 	return value, present
 }
