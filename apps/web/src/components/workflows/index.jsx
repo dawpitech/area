@@ -118,30 +118,30 @@ const Workflows = () => {
   }
 
   return (
-    <main className="w-full min-h-screen pt-16 px-4 bg-gray-50">
-      <div className="w-full mx-auto flex border rounded-xl shadow bg-white overflow-hidden min-h-[70vh] text-base">
-        <aside className="w-64 border-r bg-gray-50 flex flex-col">
-          <div className="px-4 py-3 border-b">
-            <h2 className="text-base font-semibold text-gray-700">
+    <main className="w-full min-h-screen pt-12 pl-64 px-4 bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors">
+      <div className="w-full mx-auto flex border rounded-xl shadow bg-white dark:bg-gray-950 dark:border-gray-800 overflow-hidden min-h-[70vh] text-base">
+        <aside className="w-64 border-r bg-gray-50 dark:bg-gray-900 dark:border-gray-800 flex flex-col">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+            <h2 className="text-base font-semibold text-gray-700 dark:text-gray-200">
               Workflows
             </h2>
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {loading && (
-              <div className="p-4 text-sm text-gray-500">
+              <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
                 Loading workflows...
               </div>
             )}
 
             {error && !loading && (
-              <div className="p-4 text-sm text-gray-500">
+              <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
                 {error}
               </div>
             )}
 
             {!loading && !error && workflows.length === 0 && (
-              <div className="p-4 text-sm text-gray-500">
+              <div className="p-4 text-sm text-gray-500 dark:text-gray-400">
                 No workflows found.
               </div>
             )}
@@ -167,7 +167,7 @@ const Workflows = () => {
                           'w-full text-left px-4 py-2 text-base transition ' +
                           (id === selectedId
                             ? 'bg-blue-600 text-white'
-                            : 'hover:bg-gray-100 text-gray-700')
+                            : 'hover:bg-gray-100 text-gray-700 dark:text-gray-200 dark:hover:bg-gray-800')
                         }
                       >
                         {name}
@@ -179,7 +179,7 @@ const Workflows = () => {
             )}
           </div>
 
-          <div className="px-4 py-3 border-t">
+          <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800">
             <button
               type="button"
               onClick={handleClickCreateMode}
@@ -192,7 +192,7 @@ const Workflows = () => {
         </aside>
 
         <section className="flex-1 p-6">
-          <h1 className="text-2xl font-semibold mb-4 text-gray-800">
+          <h1 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-100">
             {isCreatingMode
               ? 'Create a new workflow'
               : selectedWorkflow
@@ -208,55 +208,63 @@ const Workflows = () => {
               className="space-y-4 max-w-xl"
             >
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Action name
                 </label>
                 <input
                   type="text"
                   value={actionName}
                   onChange={e => setActionName(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition"
+                  className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
+                             bg-white text-gray-900 border-gray-300
+                             dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                   placeholder="Ex: timer_cron_job"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Action parameters
-                  <span className="text-xs text-gray-400"> (one per line)</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500"> (one per line)</span>
                 </label>
                 <textarea
                   value={actionParamsText}
                   onChange={e => setActionParamsText(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition min-h-[80px]"
+                  className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition min-h-[80px]
+                             bg-white text-gray-900 border-gray-300
+                             dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                   placeholder={'Ex:\n* * * * *'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Reaction name
                 </label>
                 <input
                   type="text"
                   value={reactionName}
                   onChange={e => setReactionName(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition"
+                  className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
+                             bg-white text-gray-900 border-gray-300
+                             dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                   placeholder="Ex: github_create_issue"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
                   Reaction parameters
-                  <span className="text-xs text-gray-400"> (one per line)</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500"> (one per line)</span>
                 </label>
                 <textarea
                   value={reactionParamsText}
                   onChange={e => setReactionParamsText(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition min-h-[80px]"
+                  className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition min-h-[80px]
+                             bg-white text-gray-900 border-gray-300
+                             dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                   placeholder={'Ex:\ndawpitech/test-thingy'}
                 />
               </div>
@@ -278,65 +286,68 @@ const Workflows = () => {
                 <button
                   type="button"
                   onClick={handleCancelCreate}
-                  className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 transition
+                             dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </button>
               </div>
             </form>
           ) : selectedWorkflow ? (
-            <div className="w-full min-h-[300px] border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <div className="w-full min-h-[300px] border border-gray-200 dark:border-gray-800 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
               <div className="mb-4">
-                <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide mb-1">
                   Action
                 </h2>
-                <p className="text-sm text-gray-800">
+                <p className="text-sm text-gray-800 dark:text-gray-100">
                   <span className="font-medium">Name:</span>{' '}
                   {selectedWorkflow.ActionName || '—'}
                 </p>
 
-                <p className="text-sm text-gray-800 mt-1">
+                <p className="text-sm text-gray-800 dark:text-gray-100 mt-1">
                   <span className="font-medium">Parameters:</span>
                 </p>
                 {Array.isArray(selectedWorkflow.ActionParameters) &&
                 selectedWorkflow.ActionParameters.length > 0 ? (
-                  <ul className="list-disc list-inside text-sm text-gray-700 mt-1">
+                  <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-200 mt-1">
                     {selectedWorkflow.ActionParameters.map((p, idx) => (
                       <li key={idx}>{p}</li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                     No action parameters.
                   </p>
                 )}
               </div>
+
               <div className="mb-4">
-                <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide mb-1">
                   Reaction
                 </h2>
-                <p className="text-sm text-gray-800">
+                <p className="text-sm text-gray-800 dark:text-gray-100">
                   <span className="font-medium">Name:</span>{' '}
                   {selectedWorkflow.ReactionName || '—'}
                 </p>
 
-                <p className="text-sm text-gray-800 mt-1">
+                <p className="text-sm text-gray-800 dark:text-gray-100 mt-1">
                   <span className="font-medium">Parameters:</span>
                 </p>
                 {Array.isArray(selectedWorkflow.ReactionParameters) &&
                 selectedWorkflow.ReactionParameters.length > 0 ? (
-                  <ul className="list-disc list-inside text-sm text-gray-700 mt-1">
+                  <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-200 mt-1">
                     {selectedWorkflow.ReactionParameters.map((p, idx) => (
                       <li key={idx}>{p}</li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                     No reaction parameters.
                   </p>
                 )}
               </div>
-              <div className="border-t pt-3 mt-2 text-xs text-gray-500 space-y-1">
+
+              <div className="border-t border-gray-200 dark:border-gray-800 pt-3 mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-1">
                 <p>
                   <span className="font-medium">ID:</span>{' '}
                   {selectedWorkflow.ID ?? selectedWorkflow.id ?? '—'}
@@ -356,7 +367,7 @@ const Workflows = () => {
               </div>
             </div>
           ) : (
-            <div className="w-full min-h-[300px] border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 text-sm">
+            <div className="w-full min-h-[300px] border border-dashed border-gray-300 dark:border-gray-700 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
               Select a workflow on the left to see its details.
             </div>
           )}

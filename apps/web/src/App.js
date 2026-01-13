@@ -6,6 +6,8 @@ import Home from "./components/home";
 
 import Workflows from "./components/workflows"
 
+import Settings from "./components/settings"
+
 import { AuthProvider } from "./contexts/authContext";
 import { useRoutes } from "react-router-dom";
 
@@ -30,7 +32,11 @@ function App() {
     {
       path: "/workflow",
       element: <Workflows />,
-    }
+    },
+    {
+      path: "/settings",
+      element: <Settings />,
+    },
   ];
   let routesElement = useRoutes(routesArray);
   return (

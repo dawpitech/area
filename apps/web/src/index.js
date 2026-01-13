@@ -6,6 +6,11 @@ import './index.css'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/authContext'
 
+const savedTheme = localStorage.getItem('theme')
+if (savedTheme === 'dark') {
+  document.documentElement.classList.add('dark')
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>

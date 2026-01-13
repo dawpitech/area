@@ -63,44 +63,46 @@ const Home = () => {
       case 'steam':
       case 'instagram':
       default:
-        alert(`Connexion ${provider} pas encore implémentée`)
+        alert('Connexion pas encore implémentée')
         break
     }
   }
 
   return (
-    <main className="w-full min-h-screen pt-16 px-4 bg-gray-50">
+    <main className="w-full min-h-screen pt-12 pl-64 px-4 bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 text-center">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100 text-center">
           {email ? (
             <>
-              Hello <span className="text-indigo-600">{email}</span>, you are now logged in.
+              Hello <span className="text-indigo-600 dark:text-indigo-400">{email}</span>, you are now logged in.
             </>
           ) : (
             <>Hello, you are now logged in.</>
           )}
         </h1>
 
-        <div className="bg-white rounded-xl shadow-lg border px-6 py-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">
+        <div className="bg-white dark:bg-gray-950 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 px-6 py-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
             Account information
           </h2>
 
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-600">
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-200">
                 Email
               </label>
               <input
                 type="email"
                 value={email || ''}
                 readOnly
-                className="mt-1 w-full px-3 py-2 text-gray-700 bg-gray-50 border rounded-lg outline-none focus:border-indigo-600 transition"
+                className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
+                           bg-gray-50 text-gray-700 border-gray-300
+                           dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-600">
+              <label className="text-sm font-medium text-gray-600 dark:text-gray-200">
                 Password
               </label>
               <div className="relative mt-1">
@@ -108,29 +110,32 @@ const Home = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={displayedPassword}
                   readOnly
-                  className="w-full px-3 py-2 pr-10 text-gray-700 bg-gray-50 border rounded-lg outline-none focus:border-indigo-600 transition"
+                  className="w-full px-3 py-2 pr-10 border rounded-lg outline-none focus:border-indigo-600 transition
+                             bg-gray-50 text-gray-700 border-gray-300
+                             dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(prev => !prev)}
-                  className="absolute inset-y-0 right-2 my-auto flex items-center justify-center text-gray-500 hover:text-indigo-600 transition"
+                  className="absolute inset-y-0 right-2 my-auto flex items-center justify-center text-gray-500 hover:text-indigo-600 transition
+                             dark:text-gray-400 dark:hover:text-indigo-400"
                   aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 >
                   {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                 For security reasons, the real password is not stored on the client.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg border px-6 py-6">
-          <h2 className="text-lg font-semibold mb-2 text-gray-800 text-center">
+        <div className="bg-white dark:bg-gray-950 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 px-6 py-6">
+          <h2 className="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100 text-center">
             Connect your accounts
           </h2>
-          <p className="text-sm text-gray-500 mb-6 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center">
             Link your favorite platforms to unlock more features.
           </p>
 
@@ -142,8 +147,8 @@ const Home = () => {
               className={
                 'flex items-center justify-center gap-2 px-4 py-3 rounded-lg border shadow-sm transition duration-300 ease-out ' +
                 (githubConnected
-                  ? 'bg-green-600 text-white cursor-default'
-                  : 'bg-gray-900 text-white hover:-translate-y-0.5 hover:shadow-xl hover:ring-2 hover:ring-gray-400/70') +
+                  ? 'bg-green-600 text-white cursor-default border-green-600'
+                  : 'bg-gray-900 text-white border-gray-800 hover:-translate-y-0.5 hover:shadow-xl hover:ring-2 hover:ring-gray-400/70') +
                 (checkingGithub ? ' opacity-70 cursor-wait' : '')
               }
             >
@@ -156,6 +161,7 @@ const Home = () => {
                     : 'Connect Github'}
               </span>
             </button>
+
             <button
               type="button"
               onClick={() => handleConnect('discord')}
@@ -167,6 +173,7 @@ const Home = () => {
               <FaDiscord size={18} />
               <span className="font-medium text-sm">Connect Discord</span>
             </button>
+
             <button
               type="button"
               onClick={() => handleConnect('steam')}
@@ -178,6 +185,7 @@ const Home = () => {
               <FaSteam size={18} />
               <span className="font-medium text-sm">Connect Steam</span>
             </button>
+
             <button
               type="button"
               onClick={() => handleConnect('instagram')}
