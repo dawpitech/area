@@ -1,4 +1,4 @@
-const API_ROOT = 'http://localhost:8080'
+const API_ROOT = process.env.REACT_APP_API_URL
 const TOKEN_COOKIE_NAME = 'auth_token'
 
 function getTokenFromCookie() {
@@ -12,6 +12,9 @@ function getTokenFromCookie() {
 }
 
 async function request(path, options = {}) {
+    if (!API_ROOT) {
+        throw new Error('REACT_APP_API_URL is not defined')
+    }
     const token = getTokenFromCookie()
 
     const headers = {
