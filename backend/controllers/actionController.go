@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"dawpitech/area/models"
 	"dawpitech/area/models/routes"
 	"dawpitech/area/stores"
 	"github.com/gin-gonic/gin"
@@ -23,11 +24,21 @@ func GetActionInfo(_ *gin.Context, in *routes.RequestGetActionInfo) (*routes.Res
 		return nil, errors.NotFound
 	}
 
+	params := make([]models.PublicParameter, len(action.Parameters))
+	for i, parameter := range action.Parameters {
+		params[i] = parameter.ToPublic()
+	}
+
+	outputs := make([]models.PublicParameter, len(action.Outputs))
+	for i, output := range action.Outputs {
+		outputs[i] = output.ToPublic()
+	}
+
 	return &routes.ResponseGetActionInfo{
 		Name:        action.Name,
 		PrettyName:  action.PrettyName,
 		Description: action.Description,
-		Parameters:  action.Parameters,
-		Outputs:     action.Outputs,
+		Parameters:  params,
+		Outputs:     outputs,
 	}, nil
 }

@@ -22,22 +22,27 @@ var Provider = models.Service{
 				{
 					Name:       "google_create_event_name",
 					PrettyName: "Event Name",
+					Type:       models.String,
 				},
 				{
 					Name:       "google_create_event_desc",
 					PrettyName: "Event description",
+					Type:       models.String,
 				},
 				{
 					Name:       "google_create_event_loc",
 					PrettyName: "Event localisation",
+					Type:       models.String,
 				},
 				{
 					Name:       "google_create_event_start_date",
 					PrettyName: "Event start time",
+					Type:       models.Date,
 				},
 				{
 					Name:       "google_create_event_end_date",
 					PrettyName: "Event end time",
+					Type:       models.Date,
 				},
 			},
 			Handler: HandlerNewCalendarEvent,

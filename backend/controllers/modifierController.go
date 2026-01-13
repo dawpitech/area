@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"dawpitech/area/models"
 	"dawpitech/area/models/routes"
 	"dawpitech/area/stores"
 	"github.com/gin-gonic/gin"
@@ -23,11 +24,21 @@ func GetModifierInfo(_ *gin.Context, in *routes.RequestGetModifierInfo) (*routes
 		return nil, errors.NotFound
 	}
 
+	params := make([]models.PublicParameter, len(modifier.Parameters))
+	for i, parameter := range modifier.Parameters {
+		params[i] = parameter.ToPublic()
+	}
+
+	outputs := make([]models.PublicParameter, len(modifier.Outputs))
+	for i, output := range modifier.Outputs {
+		outputs[i] = output.ToPublic()
+	}
+
 	return &routes.ResponseGetModifierInfo{
 		Name:        modifier.Name,
 		PrettyName:  modifier.PrettyName,
 		Description: modifier.Description,
-		Parameters:  modifier.Parameters,
-		Outputs:     modifier.Outputs,
+		Parameters:  params,
+		Outputs:     outputs,
 	}, nil
 }

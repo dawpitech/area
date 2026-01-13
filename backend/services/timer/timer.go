@@ -29,6 +29,7 @@ var Provider = models.Service{
 				{
 					Name:       "cron",
 					PrettyName: "Cron tab",
+					Type:       models.String,
 				},
 			},
 			Outputs:       nil,

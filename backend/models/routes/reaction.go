@@ -10,7 +10,7 @@ type ResponseGetReactionInfo struct {
 	Name        string
 	PrettyName  string
 	Description string
-	Parameters  []models.Parameter
+	Parameters  []models.PublicParameter
 }
 
 type GetAllReactionResponse struct {

@@ -16,9 +16,40 @@ type Context struct {
 	RuntimeData        map[string]string
 }
 
+type PublicParameter struct {
+	Name       string
+	PrettyName string
+	Type       string `validate:"oneof=string date"`
+}
+
+type ParameterType int
+
+const (
+	String = iota
+	Date
+)
+
+var ParameterTypeName = map[ParameterType]string{
+	String: "string",
+	Date:   "date",
+}
+
+func (pType ParameterType) String() string {
+	return ParameterTypeName[pType]
+}
+
+func (p Parameter) ToPublic() PublicParameter {
+	return PublicParameter{
+		Name:       p.Name,
+		PrettyName: p.PrettyName,
+		Type:       p.Type.String(),
+	}
+}
+
 type Parameter struct {
 	Name       string
 	PrettyName string
+	Type       ParameterType
 }
 
 type Authentification struct {

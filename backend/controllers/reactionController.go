@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"dawpitech/area/models"
 	"dawpitech/area/models/routes"
 	"dawpitech/area/stores"
 	"github.com/gin-gonic/gin"
@@ -23,10 +24,15 @@ func GetReactionInfo(_ *gin.Context, in *routes.RequestGetReactionInfo) (*routes
 		return nil, errors.NotFound
 	}
 
+	params := make([]models.PublicParameter, len(reaction.Parameters))
+	for i, parameter := range reaction.Parameters {
+		params[i] = parameter.ToPublic()
+	}
+
 	return &routes.ResponseGetReactionInfo{
 		Name:        reaction.Name,
 		PrettyName:  reaction.PrettyName,
 		Description: reaction.Description,
-		Parameters:  reaction.Parameters,
+		Parameters:  params,
 	}, nil
 }

@@ -15,12 +15,14 @@ var Provider = models.Service{
 				{
 					Name:       "chatgpt_prompt",
 					PrettyName: "Prompt",
+					Type:       models.String,
 				},
 			},
 			Outputs: []models.Parameter{
 				{
 					Name:       "chatgpt_output",
 					PrettyName: "ChatGPT Output",
+					Type:       models.String,
 				},
 			},
 			Handler: HandlerAskChatGPT,

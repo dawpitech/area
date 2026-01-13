@@ -10,8 +10,8 @@ type ResponseGetModifierInfo struct {
 	Name        string
 	PrettyName  string
 	Description string
-	Parameters  []models.Parameter
-	Outputs     []models.Parameter
+	Parameters  []models.PublicParameter
+	Outputs     []models.PublicParameter
 }
 
 type GetAllModifierResponse struct {

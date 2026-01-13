@@ -22,14 +22,17 @@ var Provider = models.Service{
 				{
 					Name:       "target_repository",
 					PrettyName: "Target repository",
+					Type:       models.String,
 				},
 				{
 					Name:       "issue_name",
 					PrettyName: "Issue name",
+					Type:       models.String,
 				},
 				{
 					Name:       "issue_content",
 					PrettyName: "Issue content",
+					Type:       models.String,
 				},
 			},
 			Handler: HandlerCreateAnIssue,
