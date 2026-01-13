@@ -132,12 +132,12 @@ func RunWorkflow(ctx models.Context) {
 	ctx.RuntimeData = make(map[string]string)
 	err := ctx.ModifierHandler(ctx)
 	if err != nil {
-		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, err.Error())
+		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, "Err during the modifier: "+err.Error())
 		return
 	}
 	err = ctx.ReactionHandler(ctx)
 	if err != nil {
-		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, err.Error())
+		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, "Err during the reaction: "+err.Error())
 		return
 	}
 	logEngine.NewLogEntry(ctx.WorkflowID, models.InfoLog, "Workflow execution was successful.")
