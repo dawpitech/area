@@ -82,6 +82,29 @@ fun HomeScreen(token: String, email: String?, onSignOut: () -> Unit) {
                                 }
                             )
                         }
+                    },
+                    "Google" to {
+                        if (loading) return@to
+                        loading = true
+                        error = null
+                        scope.launch {
+                            val redirectUri = "area://home"
+                            val res = fetchGoogleInit(token, redirectUri)
+                            loading = false
+                            res.fold(
+                                onSuccess = { url ->
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        error = context.getString(R.string.error_cannot_open_url, e.message ?: "")
+                                    }
+                                },
+                                onFailure = { e ->
+                                    error = e.message ?: context.getString(R.string.error_failed_to_connect, "Google")
+                                }
+                            )
+                        }
                     }
                 )
 

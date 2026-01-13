@@ -71,7 +71,7 @@ fun SimpleButton(
     Button(
         onClick = onClick,
         modifier = modifier
-            .heightIn(min = 44.dp) // Minimum touch target height for accessibility
+            .heightIn(min = 44.dp)
             .defaultMinSize(minHeight = 44.dp),
         enabled = enabled
     ) {
@@ -327,7 +327,7 @@ fun GoogleOAuthButton(
                 text = "G",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF4285F4) // Google blue
+                color = Color(0xFF4285F4)
             )
         }
     )

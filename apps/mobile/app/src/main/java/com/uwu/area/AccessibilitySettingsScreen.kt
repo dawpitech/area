@@ -186,7 +186,7 @@ private fun LanguageSelectionRow(
             ) {
                 RadioButton(
                     selected = isSelected,
-                    onClick = null // Handled by parent
+                    onClick = null
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
@@ -225,7 +225,7 @@ private fun ThemeSelectionRow(
             ) {
                 RadioButton(
                     selected = isSelected,
-                    onClick = null // Handled by parent
+                    onClick = null
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
@@ -265,7 +265,7 @@ private fun FontScaleSelectionRow(
             ) {
                 RadioButton(
                     selected = isSelected,
-                    onClick = null // Handled by parent
+                    onClick = null
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(

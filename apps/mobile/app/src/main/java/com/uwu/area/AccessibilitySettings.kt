@@ -43,8 +43,8 @@ class AccessibilitySettingsManager(private val context: Context) {
 
     fun getSettings(): AccessibilitySettings {
         return AccessibilitySettings(
-            theme = AppTheme.valueOf(prefs.getString("theme", AppTheme.SYSTEM.name) ?: AppTheme.SYSTEM.name),
-            fontScale = FontScale.valueOf(prefs.getString("font_scale", FontScale.MEDIUM.name) ?: FontScale.MEDIUM.name),
+            theme = AppTheme.valueOf(prefs.getString("theme", AppTheme.LIGHT.name) ?: AppTheme.LIGHT.name),
+            fontScale = FontScale.valueOf(prefs.getString("font_scale", FontScale.SMALL.name) ?: FontScale.SMALL.name),
             highContrast = prefs.getBoolean("high_contrast", false),
             language = AppLanguage.valueOf(prefs.getString("language", AppLanguage.SYSTEM.name) ?: AppLanguage.SYSTEM.name)
         )
@@ -78,12 +78,16 @@ class AccessibilitySettingsManager(private val context: Context) {
 fun rememberAccessibilitySettings(): Pair<AccessibilitySettings, (AccessibilitySettings) -> Unit> {
     val context = LocalContext.current
     val manager = remember { AccessibilitySettingsManager(context) }
-    val settings = remember { mutableStateOf(manager.getSettings()) }
+    val settings = remember {
+        val loadedSettings = manager.getSettings()
+        manager.applyLanguageSetting(loadedSettings.language)
+        mutableStateOf(loadedSettings)
+    }
 
     return settings.value to { newSettings: AccessibilitySettings ->
         manager.saveSettings(newSettings)
         manager.applyLanguageSetting(newSettings.language)
-        settings.value = newSettings // Update the state to trigger recomposition
+        settings.value = newSettings
     }
 }
 

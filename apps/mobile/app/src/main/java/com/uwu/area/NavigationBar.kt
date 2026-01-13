@@ -42,7 +42,7 @@ fun NavigationBar(
         ) {
             IconButton(
                 onClick = onMenuClick,
-                modifier = Modifier.size(48.dp) // Ensure minimum touch target for accessibility
+                modifier = Modifier.size(48.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Menu,
