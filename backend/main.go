@@ -27,7 +27,7 @@ func main() {
 	}
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8081", "http://localhost:8082"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:8081", "http://localhost:8082", "https://area.dawoox.dev"},
 		AllowMethods:     []string{"GET", "PATCH", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
