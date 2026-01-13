@@ -98,12 +98,12 @@ services:
       - apk_data:/apk
     restart: unless-stopped
 #   ports:
-#     - 8081:3000
+#     - 8081:80
     environment:
       - "REACT_APP_API_URL=https://api.area.dawoox.dev"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.services.front.loadbalancer.server.port=3000"
+      - "traefik.http.services.front.loadbalancer.server.port=80"
 
       - "traefik.http.routers.front.rule=Host(`area.dawoox.dev`)"
       - "traefik.http.routers.front.entrypoints=websecure"
