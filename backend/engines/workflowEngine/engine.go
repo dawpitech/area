@@ -60,6 +60,7 @@ func ValidateWorkflow(workflow models.Workflow) (error, bool) {
 }
 
 func SetupWorkflowTrigger(workflow models.Workflow) (error, bool) {
+	log.Printf("Workflow #%d's trigger was enable.\n", workflow.ID)
 	context := models.Context{
 		OwnerUserID:        workflow.OwnerUserID,
 		WorkflowID:         workflow.ID,
@@ -89,6 +90,7 @@ func SetupWorkflowTrigger(workflow models.Workflow) (error, bool) {
 }
 
 func ReloadWorkflowTrigger() {
+	log.Printf("Reloading all workflows from DB.\n")
 	var savedWorkflows []models.Workflow
 
 	if rst := initializers.DB.Find(&savedWorkflows); rst.Error != nil {
@@ -101,6 +103,7 @@ func ReloadWorkflowTrigger() {
 
 	for i := 0; i < len(savedWorkflows); i++ {
 		if !savedWorkflows[i].Active {
+			log.Printf("Skipping workflow #%d (is not active).\n", savedWorkflows[i].ID)
 			continue
 		}
 		err, ok := SetupWorkflowTrigger(savedWorkflows[i])
@@ -111,6 +114,7 @@ func ReloadWorkflowTrigger() {
 }
 
 func DisableWorkflowTrigger(workflow models.Workflow) (error, bool) {
+	log.Printf("Workflow #%d's trigger was disable.\n", workflow.ID)
 	context := models.Context{
 		OwnerUserID:        workflow.OwnerUserID,
 		WorkflowID:         workflow.ID,
