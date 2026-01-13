@@ -177,7 +177,7 @@ func GetParam(hdxType HandlerType, paramName string, ctx models.Context) (string
 	}
 
 	if value[0] == '#' {
-		value, present = ctx.RuntimeData[paramName[1:]]
+		value, present = ctx.RuntimeData[value[1:]]
 		log.Printf("Value extracted (from: %s, was present: %v): %s\n", paramName[1:], present, value)
 		return value, present
 	}
