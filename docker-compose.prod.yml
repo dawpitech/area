@@ -1,0 +1,128 @@
+services:
+  traefik: traefik:v3.6.5
+  command:
+    - "--providers.docker=true"
+    - "--providers.docker.exposedbydefault=false"
+    - "--entrypoints.web.address=:80"
+    - "--entrypoints.websecure.address=:443"
+    - "--certificatesresolvers.letsencrypt.acme.email=contact@dawoox.dev"
+    - "--certificatesresolvers.letsencrypt.acme.storage=/acme.json"
+    - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+  ports:
+    - "80:80"
+    - "443:443"
+  volumes:
+    - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    - "./acme.json:/acme.json"
+
+  db:
+    image: postgres:18.1
+#   ports:
+#     - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: "evangelion"
+      POSTGRES_USER: "shinji"
+      POSTGRES_DB: "area"
+    volumes:
+      - "db_data:/var/lib/postgresql"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U shinji -d area" ]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
+
+  migrate:
+    build:
+      context: backend
+      target: builder
+    command: "go run migrate/migrate.go"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URI: "host=db user=shinji password=evangelion dbname=area port=5432 sslmode=disable"
+    restart: no
+
+  server:
+    build:
+      context: backend
+      target: release
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+#   ports:
+#     - 8080:8080
+    environment:
+      DB_URI: "host=db user=shinji password=evangelion dbname=area port=5432 sslmode=disable"
+      PUBLIC_URL: "https://api.area.dawoox.dev"
+      JWT_TOKENS_SECRET: ${JWT_TOKENS_SECRET}
+      GITHUB_OAUTH2_CLIENT_ID: ${GITHUB_OAUTH2_CLIENT_ID}
+      GITHUB_OAUTH2_CLIENT_SECRET: ${GITHUB_OAUTH2_CLIENT_SECRET}
+      GOOGLE_OAUTH2_CLIENT_ID: ${GOOGLE_OAUTH2_CLIENT_ID}
+      GOOGLE_OAUTH2_CLIENT_SECRET: ${GOOGLE_OAUTH2_CLIENT_SECRET}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PROVIDER_OAUTH2_CALLBACK_URL_WEB: "https://area.dawoox.dev/home"
+      PROVIDER_OAUTH2_CALLBACK_URI_MOBILE: "area://home"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.Services.back.loadbalancer.server.port=8080"
+
+      - "traefik.http.routers.back.rule=Host(`api.area.dawoox.dev`)"
+      - "traefik.http.routers.back.entrypoints=websecure"
+      - "traefik.http.routers.back.tls=true"
+      - "traefik.http.routers.back.tls.certresolver=letsencrypt"
+
+      - "traefik.http.routers.back-http.rule=Host(`api.area.dawoox.dev`)"
+      - "traefik.http.routers.back-http.entrypoints=web"
+      - "traefik.http.routers.back-http.middlewares=https-redirect"
+      - "traefik.http.routers.back-http.priority=10"
+
+  swagger:
+    image: swaggerapi/swagger-ui
+    depends_on:
+      - server
+    ports:
+      - 8082:8080
+    environment:
+      SWAGGER_JSON_URL: "http://api.area.dawoox.dev/openapi.json"
+
+  client_web:
+    build:
+      context: apps/web
+    depends_on:
+      - server
+      - client_mobile
+    volumes:
+      - apk_data:/apk
+    restart: unless-stopped
+#   ports:
+#     - 8081:3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.front.loadbalancer.server.port=3000"
+
+      - "traefik.http.routers.front.rule=Host(`area.dawoox.dev`)"
+      - "traefik.http.routers.front.entrypoints=websecure"
+      - "traefik.http.routers.front.tls=true"
+      - "traefik.http.routers.front.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.front.priority=1"
+
+      - "traefik.http.routers.front-http.rule=Host(`area.dawoox.dev`)"
+      - "traefik.http.routers.front-http.entrypoints=web"
+      - "traefik.http.routers.front-http.middlewares=https-redirect"
+      - "traefik.http.routers.front-http.priority=1"
+
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+
+  client_mobile:
+    build:
+      context: apps/mobile
+    volumes:
+      - apk_data:/output
+    restart: no
+
+volumes:
+  db_data:
+  apk_data:
