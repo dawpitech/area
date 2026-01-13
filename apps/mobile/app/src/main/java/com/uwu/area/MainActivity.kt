@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -48,6 +49,8 @@ fun AppContent() {
     val prefs = remember {
         context.getSharedPreferences("area_prefs", MODE_PRIVATE)
     }
+
+    val (accessibilitySettings, updateAccessibilitySettings) = rememberAccessibilitySettings()
 
     var token by remember { mutableStateOf<String?>(null) }
     var email by remember { mutableStateOf<String?>(null) }
@@ -82,235 +85,260 @@ fun AppContent() {
         }
     }
 
-    if (token == null) {
-        AuthHost(onAuthenticated = { receivedToken, receivedEmail ->
-            token = receivedToken
-            email = receivedEmail
-        })
-    } else {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ModalDrawerSheet(
-                    modifier = Modifier.width(300.dp),
-                    drawerContainerColor = MaterialTheme.colorScheme.surface,
-                    drawerShape = RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .padding(24.dp)
+    AreaTheme(accessibilitySettings = accessibilitySettings) {
+        if (token == null) {
+            AuthHost(onAuthenticated = { receivedToken, receivedEmail ->
+                token = receivedToken
+                email = receivedEmail
+            })
+        } else {
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    ModalDrawerSheet(
+                        modifier = Modifier.width(300.dp),
+                        drawerContainerColor = MaterialTheme.colorScheme.surface,
+                        drawerShape = RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp)
                     ) {
-                        Box(
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(
-                                    brush = Brush.horizontalGradient(
-                                        colors = listOf(
-                                            com.uwu.area.ui.theme.Blue2734bd,
-                                            com.uwu.area.ui.theme.Blue2734bd,
-                                            com.uwu.area.ui.theme.Blue2734bd
-                                        )
-                                    )
-                                )
-                                .padding(20.dp),
-                            contentAlignment = Alignment.Center
+                                .fillMaxHeight()
+                                .padding(24.dp)
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "AREA",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        if (email != null) {
-                            val emailValue = email!!
-                            Row(
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(RoundedCornerShape(20.dp))
-                                        .background(
-                                            brush = Brush.linearGradient(
-                                                colors = listOf(
-                                                    com.uwu.area.ui.theme.Blue2734bd,
-                                                    com.uwu.area.ui.theme.Blue2734bd
-                                                )
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(
+                                                com.uwu.area.ui.theme.Blue2734bd,
+                                                com.uwu.area.ui.theme.Blue2734bd,
+                                                com.uwu.area.ui.theme.Blue2734bd
                                             )
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
+                                        )
+                                    )
+                                    .padding(20.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
-                                        text = emailValue.first().uppercase(),
+                                        text = "AREA",
+                                        style = MaterialTheme.typography.headlineMedium,
                                         color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Welcome back!",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = emailValue,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onBackground,
-                                        maxLines = 1
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
+
                             Spacer(modifier = Modifier.height(24.dp))
-                        }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            NavigationDrawerItem(
-                                label = {
-                                    Text(
-                                        text = "Home",
-                                        fontWeight = if (currentScreen == Screen.HOME) FontWeight.Bold else FontWeight.Normal,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                selected = currentScreen == Screen.HOME,
-                                onClick = {
-                                    currentScreen = Screen.HOME
-                                    scope.launch { drawerState.close() }
-                                }
-                            )
-
-                            NavigationDrawerItem(
-                                label = {
-                                    Text(
-                                        text = "Workflows",
-                                        fontWeight = if (currentScreen == Screen.WORKFLOWS) FontWeight.Bold else FontWeight.Normal,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                },
-                                selected = currentScreen == Screen.WORKFLOWS,
-                                onClick = {
-                                    currentScreen = Screen.WORKFLOWS
-                                    scope.launch { drawerState.close() }
-                                }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.weight(1f))
-
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        NavigationDrawerItem(
-                            label = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.Logout,
-                                        contentDescription = "Logout",
-                                        tint = com.uwu.area.ui.theme.ErrorRed,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                            if (email != null) {
+                                val emailValue = email!!
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(
+                                                brush = Brush.linearGradient(
+                                                    colors = listOf(
+                                                        com.uwu.area.ui.theme.Blue2734bd,
+                                                        com.uwu.area.ui.theme.Blue2734bd
+                                                    )
+                                                )
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = emailValue.first().uppercase(),
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 18.sp
+                                        )
+                                    }
                                     Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        text = "Sign Out",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = com.uwu.area.ui.theme.ErrorRed
-                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(R.string.home_welcome_back),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = emailValue,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
-                            },
-                            selected = false,
-                            onClick = {
-                                onSignOut()
-                                scope.launch { drawerState.close() }
-                            },
-                            colors = NavigationDrawerItemDefaults.colors(
-                                selectedContainerColor = Color.Transparent,
-                                unselectedContainerColor = Color.Transparent
-                            ),
-                            modifier = Modifier.clip(RoundedCornerShape(12.dp))
-                        )
+                                Spacer(modifier = Modifier.height(24.dp))
+                            }
+
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                NavigationDrawerItem(
+                                    label = {
+                                        Text(
+                                            text = stringResource(R.string.nav_home),
+                                            fontWeight = if (currentScreen == Screen.HOME) FontWeight.Bold else FontWeight.Normal,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    },
+                                    selected = currentScreen == Screen.HOME,
+                                    onClick = {
+                                        currentScreen = Screen.HOME
+                                        scope.launch { drawerState.close() }
+                                    }
+                                )
+
+                                NavigationDrawerItem(
+                                    label = {
+                                        Text(
+                                            text = stringResource(R.string.nav_workflows),
+                                            fontWeight = if (currentScreen == Screen.WORKFLOWS) FontWeight.Bold else FontWeight.Normal,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    },
+                                    selected = currentScreen == Screen.WORKFLOWS,
+                                    onClick = {
+                                        currentScreen = Screen.WORKFLOWS
+                                        scope.launch { drawerState.close() }
+                                    }
+                                )
+
+                                NavigationDrawerItem(
+                                    label = {
+                                        Text(
+                                            text = stringResource(R.string.nav_settings),
+                                            fontWeight = if (currentScreen == Screen.SETTINGS) FontWeight.Bold else FontWeight.Normal,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    },
+                                    selected = currentScreen == Screen.SETTINGS,
+                                    onClick = {
+                                        currentScreen = Screen.SETTINGS
+                                        scope.launch { drawerState.close() }
+                                    }
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            NavigationDrawerItem(
+                                label = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.Default.Logout,
+                                            contentDescription = stringResource(R.string.cd_logout),
+                                            tint = com.uwu.area.ui.theme.ErrorRed,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = stringResource(R.string.nav_sign_out),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = com.uwu.area.ui.theme.ErrorRed
+                                        )
+                                    }
+                                },
+                                selected = false,
+                                onClick = {
+                                    onSignOut()
+                                    scope.launch { drawerState.close() }
+                                },
+                                colors = NavigationDrawerItemDefaults.colors(
+                                    selectedContainerColor = Color.Transparent,
+                                    unselectedContainerColor = Color.Transparent
+                                ),
+                                modifier = Modifier.clip(RoundedCornerShape(12.dp))
+                            )
+                        }
                     }
                 }
-            }
-        ) {
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                topBar = {
-                    NavigationBar(
-                        currentScreen = currentScreen,
-                        email = email,
-                        onMenuClick = {
-                            scope.launch {
-                                drawerState.open()
+            ) {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    topBar = {
+                        NavigationBar(
+                            currentScreen = currentScreen,
+                            email = email,
+                            onMenuClick = {
+                                scope.launch {
+                                    drawerState.open()
+                                }
                             }
-                        }
-                    )
-                }
-            ) { innerPadding ->
-                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                    when (currentScreen) {
-                        Screen.HOME -> {
-                            HomeScreen(
-                                token = token!!,
-                                email = email,
-                                onSignOut = onSignOut
-                            )
-                        }
+                        )
+                    }
+                ) { innerPadding ->
+                    Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+                        when (currentScreen) {
+                            Screen.HOME -> {
+                                HomeScreen(
+                                    token = token!!,
+                                    email = email,
+                                    onSignOut = onSignOut
+                                )
+                            }
 
-                        Screen.WORKFLOWS -> {
-                            when {
-                                editWorkflow != null -> {
-                                    NewEditWorkflowScreen(
-                                        token = token,
-                                        workflow = editWorkflow!!,
-                                        onClose = { editWorkflow = null },
-                                        onSaved = { updatedWorkflow ->
-                                            editWorkflow = null
-                                            workflowRefreshTrigger++
-                                        }
-                                    )
+                            Screen.WORKFLOWS -> {
+                                when {
+                                    editWorkflow != null -> {
+                                        NewEditWorkflowScreen(
+                                            token = token,
+                                            workflow = editWorkflow!!,
+                                            onClose = { editWorkflow = null },
+                                            onSaved = { updatedWorkflow ->
+                                                editWorkflow = null
+                                                workflowRefreshTrigger++
+                                            }
+                                        )
+                                    }
+                                    showLogsWorkflow != null -> {
+                                        WorkflowLogsScreen(
+                                            token = token,
+                                            workflowId = showLogsWorkflow!!.ID!!,
+                                            workflowName = showLogsWorkflow!!.Name,
+                                            onDismiss = { showLogsWorkflow = null }
+                                        )
+                                    }
+                                    showCreate -> {
+                                        NewCreateWorkflowScreen(
+                                            token = token,
+                                            onClose = { showCreate = false },
+                                            onSaved = { _ ->
+                                                showCreate = false
+                                                workflowRefreshTrigger++
+                                            }
+                                        )
+                                    }
+                                    else -> {
+                                        WorkflowListScreen(
+                                            token = token,
+                                            onOpenCreate = { showCreate = true },
+                                            onEdit = { workflow -> editWorkflow = workflow },
+                                            onShowLogs = { workflow -> showLogsWorkflow = workflow },
+                                            refreshTrigger = workflowRefreshTrigger
+                                        )
+                                    }
                                 }
-                                showLogsWorkflow != null -> {
-                                    WorkflowLogsScreen(
-                                        token = token,
-                                        workflowId = showLogsWorkflow!!.ID!!,
-                                        workflowName = showLogsWorkflow!!.Name,
-                                        onDismiss = { showLogsWorkflow = null }
-                                    )
-                                }
-                                showCreate -> {
-                                    NewCreateWorkflowScreen(
-                                        token = token,
-                                        onClose = { showCreate = false },
-                                        onSaved = { _ ->
-                                            showCreate = false
-                                            workflowRefreshTrigger++
-                                        }
-                                    )
-                                }
-                                else -> {
-                                    WorkflowListScreen(
-                                        token = token,
-                                        onOpenCreate = { showCreate = true },
-                                        onEdit = { workflow -> editWorkflow = workflow },
-                                        onShowLogs = { workflow -> showLogsWorkflow = workflow },
-                                        refreshTrigger = workflowRefreshTrigger
-                                    )
-                                }
+                            }
+
+                            Screen.SETTINGS -> {
+                                AccessibilitySettingsScreen(
+                                    currentSettings = accessibilitySettings,
+                                    onSettingsChanged = updateAccessibilitySettings,
+                                    onBackPressed = { currentScreen = Screen.HOME }
+                                )
                             }
                         }
                     }

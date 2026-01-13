@@ -1,0 +1,74 @@
+<resources>
+    <string name="app_name">AREA</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Accueil</string>
+    <string name="nav_workflows">Workflows</string>
+    <string name="nav_settings">Paramètres</string>
+    <string name="nav_sign_out">Se déconnecter</string>
+
+    <!-- Authentication -->
+    <string name="auth_sign_in">Se connecter</string>
+    <string name="auth_sign_up">S\'inscrire</string>
+    <string name="auth_continue_with_github">Continuer avec GitHub</string>
+    <string name="auth_continue_with_google">Continuer avec Google</string>
+    <string name="auth_connecting">Connexion…</string>
+    <string name="auth_trying_to_authenticate">Tentative d\'authentification…</string>
+
+    <!-- Home Screen -->
+    <string name="home_welcome_logged_in">Bonjour %s, vous êtes maintenant connecté.</string>
+    <string name="home_welcome">Bonjour, vous êtes maintenant connecté.</string>
+    <string name="home_connect_accounts">Connecter vos comptes</string>
+    <string name="home_connect_description">Liez vos plateformes favorites pour débloquer plus de fonctionnalités.</string>
+    <string name="home_connect_button">Connecter %s</string>
+    <string name="home_welcome_back">Bon retour !</string>
+    <string name="home_logged_in_as">Connecté en tant que : %s</string>
+
+    <!-- Workflow Screens -->
+    <string name="workflow_details">Détails du workflow</string>
+    <string name="workflow_active">Actif</string>
+    <string name="workflow_choose_action">Choisir une Action (Déclencheur)</string>
+    <string name="workflow_add_modifier">Ajouter un Modificateur (Optionnel)</string>
+    <string name="workflow_choose_reaction">Choisir une Réaction</string>
+    <string name="workflow_parameters">Paramètres</string>
+    <string name="workflow_no_parameters">Aucun paramètre pour cette sélection.</string>
+    <string name="workflow_select_action">Sélectionner\nAction</string>
+    <string name="workflow_optional_filter">Filtre\nOptionnel</string>
+    <string name="workflow_select_reaction">Sélectionner\nRéaction</string>
+    <string name="workflow_no_logs">Aucun journal disponible pour ce workflow</string>
+
+    <!-- Accessibility -->
+    <string name="accessibility_settings">Paramètres d\'accessibilité</string>
+    <string name="accessibility_language">Langue</string>
+    <string name="accessibility_theme">Thème</string>
+    <string name="accessibility_font_scale">Taille de police</string>
+    <string name="accessibility_high_contrast">Contraste élevé</string>
+    <string name="accessibility_theme_light">Clair</string>
+    <string name="accessibility_theme_dark">Sombre</string>
+    <string name="accessibility_theme_system">Système</string>
+    <string name="accessibility_font_scale_small">Petite</string>
+    <string name="accessibility_font_scale_medium">Moyenne</string>
+    <string name="accessibility_font_scale_large">Grande</string>
+    <string name="accessibility_font_scale_extra_large">Très grande</string>
+
+    <!-- Content Descriptions -->
+    <string name="cd_logout">Se déconnecter</string>
+    <string name="cd_expand">Développer</string>
+    <string name="cd_collapse">Réduire</string>
+    <string name="cd_then">Puis</string>
+    <string name="cd_menu">Ouvrir le menu</string>
+    <string name="cd_back">Retour</string>
+
+    <!-- Error Messages -->
+    <string name="error_unknown">Erreur inconnue</string>
+    <string name="error_cannot_open_url">Impossible d\'ouvrir l\'URL : %s</string>
+    <string name="error_failed_to_connect">Échec de connexion %s</string>
+
+    <!-- Common -->
+    <string name="cancel">Annuler</string>
+    <string name="save">Sauvegarder</string>
+    <string name="close">Fermer</string>
+    <string name="ok">OK</string>
+    <string name="yes">Oui</string>
+    <string name="no">Non</string>
+</resources>

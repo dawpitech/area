@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,7 +35,7 @@ fun HomeScreen(token: String, email: String?, onSignOut: () -> Unit) {
             .padding(16.dp)
     ) {
         Text(
-            text = if (email != null) "Hello $email, you are now logged in." else "Hello, you are now logged in.",
+            text = if (email != null) stringResource(R.string.home_welcome_logged_in, email) else stringResource(R.string.home_welcome),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
@@ -45,13 +46,13 @@ fun HomeScreen(token: String, email: String?, onSignOut: () -> Unit) {
         com.uwu.area.ui.components.SimpleCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "Connect your accounts",
+                    text = stringResource(R.string.home_connect_accounts),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Link your favorite platforms to unlock more features.",
+                    text = stringResource(R.string.home_connect_description),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -70,21 +71,18 @@ fun HomeScreen(token: String, email: String?, onSignOut: () -> Unit) {
                             res.fold(
                                 onSuccess = { url ->
                                     try {
-                                        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                                        val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
                                         context.startActivity(intent)
                                     } catch (e: Exception) {
-                                        error = "Cannot open URL: ${e.message}"
+                                        error = context.getString(R.string.error_cannot_open_url, e.message ?: "")
                                     }
                                 },
                                 onFailure = { e ->
-                                    error = e.message ?: "Failed to connect GitHub"
+                                    error = e.message ?: context.getString(R.string.error_failed_to_connect, "GitHub")
                                 }
                             )
                         }
-                    },
-                    "Discord" to { error = "Discord connection not yet implemented" },
-                    "Steam" to { error = "Steam connection not yet implemented" },
-                    "Instagram" to { error = "Instagram connection not yet implemented" }
+                    }
                 )
 
                 services.forEach { (name, onClick) ->
@@ -92,9 +90,9 @@ fun HomeScreen(token: String, email: String?, onSignOut: () -> Unit) {
                     com.uwu.area.ui.components.SimpleButton(
                         onClick = onClick,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !loading || name != "GitHub"
+                        enabled = !loading || (name != "GitHub" && name != "Google")
                     ) {
-                        Text(text = if (loading && name == "GitHub") "Connecting..." else "Connect $name")
+                        Text(text = if (loading && (name == "GitHub" || name == "Google")) stringResource(R.string.auth_connecting) else stringResource(R.string.home_connect_button, name))
                     }
                 }
             }

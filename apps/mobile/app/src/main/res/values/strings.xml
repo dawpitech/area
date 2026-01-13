@@ -1,3 +1,74 @@
 <resources>
-    <string name="app_name">area</string>
+    <string name="app_name">AREA</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_workflows">Workflows</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_sign_out">Sign Out</string>
+
+    <!-- Authentication -->
+    <string name="auth_sign_in">Sign In</string>
+    <string name="auth_sign_up">Sign Up</string>
+    <string name="auth_continue_with_github">Continue with GitHub</string>
+    <string name="auth_continue_with_google">Continue with Google</string>
+    <string name="auth_connecting">Connecting…</string>
+    <string name="auth_trying_to_authenticate">Trying to authenticate…</string>
+
+    <!-- Home Screen -->
+    <string name="home_welcome_logged_in">Hello %s, you are now logged in.</string>
+    <string name="home_welcome">Hello, you are now logged in.</string>
+    <string name="home_connect_accounts">Connect your accounts</string>
+    <string name="home_connect_description">Link your favorite platforms to unlock more features.</string>
+    <string name="home_connect_button">Connect %s</string>
+    <string name="home_welcome_back">Welcome back!</string>
+    <string name="home_logged_in_as">Logged in as: %s</string>
+
+    <!-- Workflow Screens -->
+    <string name="workflow_details">Workflow Details</string>
+    <string name="workflow_active">Active</string>
+    <string name="workflow_choose_action">Choose an Action (Trigger)</string>
+    <string name="workflow_add_modifier">Add a Modifier (Optional)</string>
+    <string name="workflow_choose_reaction">Choose a Reaction</string>
+    <string name="workflow_parameters">Parameters</string>
+    <string name="workflow_no_parameters">No parameters for this selection.</string>
+    <string name="workflow_select_action">Select\nAction</string>
+    <string name="workflow_optional_filter">Optional\nFilter</string>
+    <string name="workflow_select_reaction">Select\nReaction</string>
+    <string name="workflow_no_logs">No logs available for this workflow</string>
+
+    <!-- Accessibility -->
+    <string name="accessibility_settings">Accessibility Settings</string>
+    <string name="accessibility_language">Language</string>
+    <string name="accessibility_theme">Theme</string>
+    <string name="accessibility_font_scale">Font Scale</string>
+    <string name="accessibility_high_contrast">High Contrast</string>
+    <string name="accessibility_theme_light">Light</string>
+    <string name="accessibility_theme_dark">Dark</string>
+    <string name="accessibility_theme_system">System</string>
+    <string name="accessibility_font_scale_small">Small</string>
+    <string name="accessibility_font_scale_medium">Medium</string>
+    <string name="accessibility_font_scale_large">Large</string>
+    <string name="accessibility_font_scale_extra_large">Extra Large</string>
+
+    <!-- Content Descriptions -->
+    <string name="cd_logout">Logout</string>
+    <string name="cd_expand">Expand</string>
+    <string name="cd_collapse">Collapse</string>
+    <string name="cd_then">Then</string>
+    <string name="cd_menu">Open menu</string>
+    <string name="cd_back">Go back</string>
+
+    <!-- Error Messages -->
+    <string name="error_unknown">Unknown error</string>
+    <string name="error_cannot_open_url">Cannot open URL: %s</string>
+    <string name="error_failed_to_connect">Failed to connect %s</string>
+
+    <!-- Common -->
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="close">Close</string>
+    <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 </resources>

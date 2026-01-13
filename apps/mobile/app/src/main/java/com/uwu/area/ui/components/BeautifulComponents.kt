@@ -70,7 +70,9 @@ fun SimpleButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier
+            .heightIn(min = 44.dp) // Minimum touch target height for accessibility
+            .defaultMinSize(minHeight = 44.dp),
         enabled = enabled
     ) {
         content()
@@ -247,4 +249,86 @@ fun WorkflowConfigSection(
             }
         }
     }
+}
+
+@Composable
+fun OAuthButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    icon: @Composable () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        enabled = enabled,
+        border = ButtonDefaults.outlinedButtonBorder.copy(
+            width = 1.dp
+        ),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(modifier = Modifier.size(24.dp)) {
+                icon()
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Start
+            )
+        }
+    }
+}
+
+@Composable
+fun GithubOAuthButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    OAuthButton(
+        text = "Continue with GitHub",
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        icon = {
+            Text(
+                text = "🐙",
+                fontSize = 20.sp
+            )
+        }
+    )
+}
+
+@Composable
+fun GoogleOAuthButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    OAuthButton(
+        text = "Continue with Google",
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        icon = {
+            Text(
+                text = "G",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF4285F4) // Google blue
+            )
+        }
+    )
 }

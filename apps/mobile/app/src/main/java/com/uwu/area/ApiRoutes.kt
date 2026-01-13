@@ -13,4 +13,6 @@ object ApiRoutes {
     const val MODIFIERS = "/modifiers/"
     const val GITHUB_INIT = "/providers/github/auth/init"
     const val GITHUB_CHECK = "/providers/github/auth/check"
+    const val GOOGLE_INIT = "/providers/google/auth/init"
+    const val GOOGLE_CHECK = "/providers/google/auth/check"
 }

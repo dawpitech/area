@@ -17,7 +17,7 @@ class AuthRedirectActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val tv = TextView(this).apply {
-            text = "Trying to authenticate..."
+            text = getString(R.string.auth_trying_to_authenticate)
             setPadding(20, 40, 20, 40)
         }
         setContentView(tv)

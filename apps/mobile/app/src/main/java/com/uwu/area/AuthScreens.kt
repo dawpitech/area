@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -174,6 +175,8 @@ fun AuthHost(onAuthenticated: (token: String, email: String) -> Unit) {
     }
     val scope = rememberCoroutineScope()
 
+    val (accessibilitySettings, updateAccessibilitySettings) = rememberAccessibilitySettings()
+
     var mode by remember { mutableStateOf("signin") }
 
     val onAuthSuccess: (String, String) -> Unit = { token, email ->
@@ -186,15 +189,21 @@ fun AuthHost(onAuthenticated: (token: String, email: String) -> Unit) {
         }
     }
 
-    if (mode == "signin") {
-        SignInScreen(
+    when (mode) {
+        "signin" -> SignInScreen(
             onSwitchToSignUp = { mode = "signup" },
-            onSignedIn = { token, email -> onAuthSuccess(token, email) }
+            onSignedIn = { token, email -> onAuthSuccess(token, email) },
+            onSettings = { mode = "settings" }
         )
-    } else {
-        SignUpScreen(
+        "signup" -> SignUpScreen(
             onSwitchToSignIn = { mode = "signin" },
-            onSignedUp = { token, email -> onAuthSuccess(token, email) }
+            onSignedUp = { token, email -> onAuthSuccess(token, email) },
+            onSettings = { mode = "settings" }
+        )
+        "settings" -> AccessibilitySettingsScreen(
+            currentSettings = accessibilitySettings,
+            onSettingsChanged = updateAccessibilitySettings,
+            onBackPressed = { mode = "signin" }
         )
     }
 }
@@ -222,7 +231,7 @@ fun ErrorPopup(message: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String, email: String) -> Unit) {
+fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String, email: String) -> Unit, onSettings: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
@@ -233,15 +242,38 @@ fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String, email
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "Sign In",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            IconButton(
+                onClick = onSettings,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Settings,
+                    contentDescription = "Settings",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(1f)
+                .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Sign In",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -291,18 +323,19 @@ fun SignInScreen(onSwitchToSignUp: () -> Unit, onSignedIn: (token: String, email
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextButton(onClick = onSwitchToSignUp) {
-            Text("Create account")
+            TextButton(onClick = onSwitchToSignUp) {
+                Text("Create account")
+            }
         }
-    }
 
-    if (error != null) {
-        ErrorPopup(message = error!!, onDismiss = { error = null })
+        if (error != null) {
+            ErrorPopup(message = error!!, onDismiss = { error = null })
+        }
     }
 }
 
 @Composable
-fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String, email: String) -> Unit) {
+fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String, email: String) -> Unit, onSettings: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
@@ -313,11 +346,34 @@ fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String, email
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
     ) {
-        Text(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            IconButton(
+                onClick = onSettings,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Settings,
+                    contentDescription = "Settings",
+                    tint = MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(1f)
+                .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
             text = "Sign Up",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground
@@ -386,13 +442,14 @@ fun SignUpScreen(onSwitchToSignIn: () -> Unit, onSignedUp: (token: String, email
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextButton(onClick = onSwitchToSignIn) {
-            Text("Already have an account? Sign in")
+            TextButton(onClick = onSwitchToSignIn) {
+                Text("Already have an account? Sign in")
+            }
         }
-    }
 
-    if (error != null) {
-        ErrorPopup(message = error!!, onDismiss = { error = null })
+        if (error != null) {
+            ErrorPopup(message = error!!, onDismiss = { error = null })
+        }
     }
 }
 

@@ -12,12 +12,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.uwu.area.ui.theme.*
+import com.uwu.area.R
 
 enum class Screen {
-    HOME, WORKFLOWS
+    HOME, WORKFLOWS, SETTINGS
 }
 
 @Composable
@@ -38,17 +40,20 @@ fun NavigationBar(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onMenuClick) {
+            IconButton(
+                onClick = onMenuClick,
+                modifier = Modifier.size(48.dp) // Ensure minimum touch target for accessibility
+            ) {
                 Icon(
                     imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
+                    contentDescription = stringResource(R.string.cd_menu),
                     tint = White
                 )
             }
 
             if (email != null) {
                 Text(
-                    text = "Logged in as: $email",
+                    text = stringResource(R.string.home_logged_in_as, email),
                     fontSize = 12.sp,
                     color = White
                 )
