@@ -100,6 +100,9 @@ func ReloadWorkflowTrigger() {
 	}
 
 	for i := 0; i < len(savedWorkflows); i++ {
+		if !savedWorkflows[i].Active {
+			continue
+		}
 		err, ok := SetupWorkflowTrigger(savedWorkflows[i])
 		if !ok {
 			log.Print(err.Error())
