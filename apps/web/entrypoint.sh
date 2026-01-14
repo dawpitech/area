@@ -3,4 +3,4 @@ sed -i 's|REACT_APP_API_URL_PLACEHOLDER|'${REACT_APP_API_URL}'|g' /usr/share/ngi
 
 cp /apk/client.apk public/. || true
 
-ngninx -g 'daemon off;'
+nginx -g 'daemon off;'
