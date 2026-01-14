@@ -4,11 +4,16 @@ services:
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+
       - "--certificatesresolvers.letsencrypt.acme.email=contact@dawoox.dev"
       - "--certificatesresolvers.letsencrypt.acme.storage=/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
     ports:
       - "80:80"
       - "443:443"
@@ -115,9 +120,6 @@ services:
       - "traefik.http.routers.front-http.entrypoints=web"
       - "traefik.http.routers.front-http.middlewares=https-redirect"
       - "traefik.http.routers.front-http.priority=1"
-
-      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
 
   client_mobile:
     build:
