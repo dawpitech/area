@@ -21,13 +21,13 @@ services:
 #   ports:
 #     - "5432:5432"
     environment:
-      POSTGRES_PASSWORD: "evangelion"
-      POSTGRES_USER: "shinji"
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_DB: "area"
     volumes:
       - "db_data:/var/lib/postgresql"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U shinji -d area" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d area" ]
       interval: 10s
       retries: 5
       start_period: 10s
@@ -42,7 +42,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DB_URI: "host=db user=shinji password=evangelion dbname=area port=5432 sslmode=disable"
+      DB_URI: "host=db user=${DB_USER} password=${DB_PASSWORD} dbname=area port=5432 sslmode=disable"
     restart: no
 
   server:
@@ -55,7 +55,7 @@ services:
 #   ports:
 #     - 8080:8080
     environment:
-      DB_URI: "host=db user=shinji password=evangelion dbname=area port=5432 sslmode=disable"
+      DB_URI: "host=db user=${DB_USER} password=${DB_PASSWORD} dbname=area port=5432 sslmode=disable"
       PUBLIC_URL: "https://api.area.dawoox.dev"
       JWT_TOKENS_SECRET: ${JWT_TOKENS_SECRET}
       GITHUB_OAUTH2_CLIENT_ID: ${GITHUB_OAUTH2_CLIENT_ID}
