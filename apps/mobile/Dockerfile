@@ -23,4 +23,8 @@ COPY . .
 
 RUN ./gradlew assembleRelease --no-daemon
 
-CMD ["sh", "-c", "cp app/build/outputs/apk/release/app-release.apk /output/client.apk && echo Release APK copied to /output/client.apk"]
+FROM alpine:latest AS output
+
+COPY --from=builder /app/app/build/outputs/apk/release/app-release.apk /client.apk
+
+CMD ["sh", "-c", "cp /client.apk /output/client.apk && echo Release APK copied to /output/client.apk"]

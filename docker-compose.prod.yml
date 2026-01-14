@@ -41,8 +41,7 @@ services:
   migrate:
     build:
       context: backend
-      target: builder
-    command: "go run migrate/migrate.go"
+    command: "./migrate_bin"
     depends_on:
       db:
         condition: service_healthy
@@ -53,7 +52,6 @@ services:
   server:
     build:
       context: backend
-      target: release
     depends_on:
       migrate:
         condition: service_completed_successfully
