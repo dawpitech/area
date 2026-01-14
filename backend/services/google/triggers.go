@@ -6,6 +6,7 @@ import (
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
 	"github.com/go-co-op/gocron/v2"
+	"github.com/google/uuid"
 	"github.com/juju/errors"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -13,6 +14,11 @@ import (
 	"google.golang.org/api/option"
 	"time"
 )
+
+var scheduler gocron.Scheduler
+var workflowJobUUID = make(map[uint]uuid.UUID)
+
+var KnownMeetingCooldownTable = make(map[uint]time.Time)
 
 func RemoveIsInAMeeting(ctx models.Context) error {
 	err := scheduler.RemoveJob(workflowJobUUID[ctx.WorkflowID])
@@ -50,6 +56,14 @@ func checkIsInAMeeting(ctx models.Context) {
 		TokenType:   "Bearer",
 	}
 
+	_, present := KnownMeetingCooldownTable[ctx.WorkflowID]
+	if present {
+		if time.Now().Before(KnownMeetingCooldownTable[ctx.WorkflowID]) {
+			return
+		}
+		delete(KnownMeetingCooldownTable, ctx.WorkflowID)
+	}
+	
 	client := oauthConfig.Client(context.Background(), &token)
 	srv, err := calendar.NewService(context.Background(), option.WithHTTPClient(client))
 	if err != nil {
@@ -117,6 +131,7 @@ func checkIsInAMeeting(ctx models.Context) {
 			}
 
 			if now.After(startTime) && now.Before(endTime) {
+				KnownMeetingCooldownTable[ctx.WorkflowID] = endTime
 				workflowEngine.RunWorkflow(ctx)
 				return
 			}
