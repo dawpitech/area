@@ -40,7 +40,11 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		"/",
 		[]fizz.OperationOption{
 			fizz.Summary("Retrieve all workflows"),
+			fizz.Security(&openapi.SecurityRequirement{
+				"bearerAuth": []string{},
+			}),
 		},
+		middlewares.CheckAuth,
 		tonic.Handler(controllers.GetAllWorkflows, 200),
 	)
 	workflowRoutes.POST(
@@ -76,7 +80,11 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		"/:id",
 		[]fizz.OperationOption{
 			fizz.Summary("Retrieve a workflow"),
+			fizz.Security(&openapi.SecurityRequirement{
+				"bearerAuth": []string{},
+			}),
 		},
+		middlewares.CheckAuth,
 		tonic.Handler(controllers.GetWorkflow, 200),
 	)
 	workflowRoutes.PATCH(

@@ -12,13 +12,26 @@ import (
 	"strconv"
 )
 
-func GetAllWorkflows(_ *gin.Context) (*[]routes.GetAllWorkflowResponse, error) {
+func GetAllWorkflows(c *gin.Context) (*[]routes.GetAllWorkflowResponse, error) {
+	maybeUser, ok := c.Get("user")
+	if !ok {
+		return nil, errors.BadRequest
+	}
+
+	user, ok := utils.MaybeGetUser(maybeUser)
+	if !ok {
+		return nil, errors.BadRequest
+	}
+
 	var workflows []models.Workflow
 	if rst := initializers.DB.Find(&workflows); rst.Error != nil {
 		return nil, errors.New("Internal server error")
 	}
 	var response []routes.GetAllWorkflowResponse
 	for i := 0; i < len(workflows); i++ {
+		if workflows[i].OwnerUserID != user.ID {
+			continue
+		}
 		response = append(response, routes.GetAllWorkflowResponse{
 			WorkflowID: workflows[i].ID,
 			Name:       workflows[i].Name,
@@ -28,9 +41,22 @@ func GetAllWorkflows(_ *gin.Context) (*[]routes.GetAllWorkflowResponse, error) {
 	return &response, nil
 }
 
-func GetWorkflow(_ *gin.Context, in *routes.WorkflowID) (*routes.GetWorkflowResponse, error) {
+func GetWorkflow(c *gin.Context, in *routes.WorkflowID) (*routes.GetWorkflowResponse, error) {
+	maybeUser, ok := c.Get("user")
+	if !ok {
+		return nil, errors.BadRequest
+	}
+
+	user, ok := utils.MaybeGetUser(maybeUser)
+	if !ok {
+		return nil, errors.BadRequest
+	}
+
 	var workflow models.Workflow
 	if rst := initializers.DB.Where("id=?", in.WorkflowID).First(&workflow); rst.Error != nil {
+		return nil, errors.NotFound
+	}
+	if workflow.OwnerUserID != user.ID {
 		return nil, errors.NotFound
 	}
 	return &routes.GetWorkflowResponse{
