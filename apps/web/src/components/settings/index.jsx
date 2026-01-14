@@ -32,21 +32,21 @@ const Settings = () => {
     <main className="w-full min-h-screen pt-12 pl-64 px-6 bg-gray-50 dark:bg-gray-900 transition-colors">
       <div className="max-w-3xl">
         <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
-          Paramètres
+          Settings
         </h1>
 
         <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow p-6">
           <h2 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-4">
-            Apparence
+            Visual settings
           </h2>
 
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                Thème sombre
+                Light/Dark mode
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Activer le mode sombre pour l’interface
+                Toogle Light/Dark mode within the application
               </p>
             </div>
 

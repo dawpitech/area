@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../../contexts/authContext'
 
 const safeObj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {})
+
 const buildDefaults = (details) => {
   const out = {}
   const ps = Array.isArray(details?.Parameters) ? details.Parameters : []
@@ -30,6 +31,7 @@ const buildDefaults = (details) => {
   }
   return out
 }
+
 const coerce = (type, raw) => {
   const t = (type || '').toLowerCase()
   if (['bool', 'boolean'].includes(t)) return Boolean(raw)
@@ -44,6 +46,33 @@ const coerce = (type, raw) => {
   return raw ?? ''
 }
 
+const isRefValue = (v) => typeof v === 'string' && v.startsWith('#') && v.length > 1
+
+/**
+ * IMPORTANT:
+ * Available references must come from details.Outputs (NOT details.Parameters).
+ * Each reference is stored as "#<outputName>".
+ */
+const buildReferenceOptionsFromDetails = (details) => {
+  const outs = Array.isArray(details?.Outputs) ? details.Outputs : []
+  const opts = []
+
+  for (const o of outs) {
+    const outputName = o?.Name
+    if (!outputName) continue
+    const value = `#${String(outputName)}`
+    const label = String(o?.PrettyName || outputName)
+    opts.push({ value, label })
+  }
+
+  const seen = new Set()
+  return opts.filter((o) => {
+    if (seen.has(o.value)) return false
+    seen.add(o.value)
+    return true
+  })
+}
+
 const DetailsPanel = ({ label, loading, details }) => (
   <div className="mt-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white/60 dark:bg-black/20">
     {loading && !details ? (
@@ -51,9 +80,8 @@ const DetailsPanel = ({ label, loading, details }) => (
     ) : details ? (
       <>
         <p className="text-sm text-gray-800 dark:text-gray-100 font-medium">{details.PrettyName || details.Name}</p>
-        {details.Description ? (
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{details.Description}</p>
-        ) : null}
+        {details.Description ? <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{details.Description}</p> : null}
+
         {Array.isArray(details.Parameters) && details.Parameters.length > 0 ? (
           <div className="mt-2">
             <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Parameters</p>
@@ -61,7 +89,6 @@ const DetailsPanel = ({ label, loading, details }) => (
               {details.Parameters.map((p) => (
                 <li key={p.Name}>
                   <span className="font-medium">{p.PrettyName || p.Name}</span>
-                  <span className="text-gray-500 dark:text-gray-400"> ({p.Type})</span>
                 </li>
               ))}
             </ul>
@@ -89,7 +116,7 @@ const SelectWithDetails = ({
   selectedDetails,
   emptyOptionsText,
 }) => {
-  const placeholder = required ? `Select a ${label.toLowerCase()}` : (optionalLabel || `No ${label.toLowerCase()}`)
+  const placeholder = required ? `Select a ${label.toLowerCase()}` : optionalLabel || `No ${label.toLowerCase()}`
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
@@ -103,23 +130,85 @@ const SelectWithDetails = ({
         disabled={loading}
       >
         {required ? (
-          <option value="" disabled>{loading ? `Loading ${label.toLowerCase()}...` : placeholder}</option>
+          <option value="" disabled>
+            {loading ? `Loading ${label.toLowerCase()}...` : placeholder}
+          </option>
         ) : (
           <option value="">{loading ? `Loading ${label.toLowerCase()}...` : placeholder}</option>
         )}
-        {options.length === 0 && !loading && emptyOptionsText ? (
-          <option value="" disabled>{emptyOptionsText}</option>
-        ) : null}
+
+        {options.length === 0 && !loading && emptyOptionsText ? <option value="" disabled>{emptyOptionsText}</option> : null}
+
         {options.map((n) => (
-          <option key={n} value={n}>{detailsByName?.[n]?.PrettyName || n}</option>
+          <option key={n} value={n}>
+            {detailsByName?.[n]?.PrettyName || n}
+          </option>
         ))}
       </select>
+
       {value ? <DetailsPanel label={label} loading={detailsLoading} details={selectedDetails} /> : null}
     </div>
   )
 }
 
-const ParamsEditor = ({ title, details, values, setKV }) => {
+const StringParamSelect = ({ label, value, onChange, referenceOptions }) => {
+  const CUSTOM = '__custom__'
+  const hasRefs = Array.isArray(referenceOptions) && referenceOptions.length > 0
+
+  const valueIsRef = isRefValue(value)
+  const refExists = valueIsRef && hasRefs && referenceOptions.some((o) => o.value === value)
+  const selectedModeValue = refExists ? value : CUSTOM
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
+
+      <select
+        value={selectedModeValue}
+        onChange={(e) => {
+          const next = e.target.value
+          if (next === CUSTOM) {
+            onChange(refExists ? '' : (value ?? ''))
+          } else {
+            onChange(next) // stored as "#<outputName>"
+          }
+        }}
+        className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
+                   bg-white text-gray-900 border-gray-300
+                   dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700"
+      >
+        <option value={CUSTOM}>Custom value</option>
+
+        {hasRefs ? (
+          <>
+            <option value="" disabled>
+              Available references
+            </option>
+            {referenceOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </>
+        ) : null}
+      </select>
+
+      {selectedModeValue === CUSTOM ? (
+        <input
+          type="text"
+          value={value ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Enter a custom value..."
+          className="mt-2 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
+                     bg-white text-gray-900 border-gray-300
+                     dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700"
+        />
+      ) : null}
+    </div>
+  )
+}
+
+const ParamsEditor = ({ title, details, values, setKV, referenceOptions }) => {
   if (!details) return null
   const ps = Array.isArray(details.Parameters) ? details.Parameters : []
   if (ps.length === 0) {
@@ -129,14 +218,17 @@ const ParamsEditor = ({ title, details, values, setKV }) => {
       </div>
     )
   }
+
   return (
     <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 space-y-3">
       <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{title} parameters</p>
+
       {ps.map((p) => {
         const key = p.Name
         const type = (p.Type || '').toLowerCase()
         const label = p.PrettyName || p.Name
         const val = values?.[key]
+
         if (['bool', 'boolean'].includes(type)) {
           return (
             <div key={key} className="flex items-center gap-2">
@@ -146,10 +238,13 @@ const ParamsEditor = ({ title, details, values, setKV }) => {
                 checked={Boolean(val)}
                 onChange={(e) => setKV(key, 'boolean', e.target.checked)}
               />
-              <label htmlFor={`${title}-${key}`} className="text-sm text-gray-700 dark:text-gray-200">{label}</label>
+              <label htmlFor={`${title}-${key}`} className="text-sm text-gray-700 dark:text-gray-200">
+                {label}
+              </label>
             </div>
           )
         }
+
         if (['int', 'integer', 'number', 'float', 'double'].includes(type)) {
           return (
             <div key={key}>
@@ -165,16 +260,14 @@ const ParamsEditor = ({ title, details, values, setKV }) => {
             </div>
           )
         }
+
         return (
           <div key={key}>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
-            <input
-              type="text"
-              value={val ?? ''}
-              onChange={(e) => setKV(key, type, e.target.value)}
-              className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
-                         bg-white text-gray-900 border-gray-300
-                         dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700"
+            <StringParamSelect
+              label={label}
+              value={typeof val === 'string' ? val : (val ?? '')}
+              onChange={(next) => setKV(key, 'string', next)}
+              referenceOptions={referenceOptions}
             />
           </div>
         )
@@ -280,7 +373,7 @@ const Workflows = () => {
   }, [])
 
   const selectedWorkflowLight = useMemo(
-    () => workflows.find(w => (w.WorkflowID ?? w.ID ?? w.id) === selectedId) || null,
+    () => workflows.find((w) => (w.WorkflowID ?? w.ID ?? w.id) === selectedId) || null,
     [workflows, selectedId]
   )
   const selectedWorkflowDetails = useMemo(
@@ -314,9 +407,9 @@ const Workflows = () => {
     setReactionParams(safeObj(wf.ReactionParameters))
   }
 
-  const kvAction = (k, t, raw) => setActionParams(p => ({ ...p, [k]: coerce(t, raw) }))
-  const kvModifier = (k, t, raw) => setModifierParams(p => ({ ...p, [k]: coerce(t, raw) }))
-  const kvReaction = (k, t, raw) => setReactionParams(p => ({ ...p, [k]: coerce(t, raw) }))
+  const kvAction = (k, t, raw) => setActionParams((p) => ({ ...p, [k]: coerce(t, raw) }))
+  const kvModifier = (k, t, raw) => setModifierParams((p) => ({ ...p, [k]: coerce(t, raw) }))
+  const kvReaction = (k, t, raw) => setReactionParams((p) => ({ ...p, [k]: coerce(t, raw) }))
 
   const preloadList = async (names, refSet, fetchOne, setCache) => {
     await Promise.allSettled(
@@ -324,7 +417,7 @@ const Workflows = () => {
         if (refSet.current.has(n)) return
         refSet.current.add(n)
         const d = await fetchOne(n)
-        setCache(prev => (prev[n] ? prev : { ...prev, [n]: d }))
+        setCache((prev) => (prev[n] ? prev : { ...prev, [n]: d }))
       })
     )
   }
@@ -342,7 +435,7 @@ const Workflows = () => {
         const list = Array.isArray(data) ? data : []
         setWorkflows(list)
         const first = list[0]
-        setSelectedId(first ? (first.WorkflowID ?? first.ID ?? first.id) : null)
+        setSelectedId(first ? first.WorkflowID ?? first.ID ?? first.id : null)
       } catch (e) {
         console.error(e)
         setError(e.message || 'Failed to load workflows.')
@@ -369,7 +462,9 @@ const Workflows = () => {
         if (!cancel) setLoadingActions(false)
       }
     })()
-    return () => { cancel = true }
+    return () => {
+      cancel = true
+    }
   }, [token])
 
   useEffect(() => {
@@ -389,7 +484,9 @@ const Workflows = () => {
         if (!cancel) setLoadingModifiers(false)
       }
     })()
-    return () => { cancel = true }
+    return () => {
+      cancel = true
+    }
   }, [token])
 
   useEffect(() => {
@@ -409,7 +506,9 @@ const Workflows = () => {
         if (!cancel) setLoadingReactions(false)
       }
     })()
-    return () => { cancel = true }
+    return () => {
+      cancel = true
+    }
   }, [token])
 
   useEffect(() => {
@@ -427,7 +526,7 @@ const Workflows = () => {
         setError('')
         const full = await apiGetWorkflow(selectedId)
         if (cancel) return
-        setDetailsById(prev => ({ ...prev, [selectedId]: full }))
+        setDetailsById((prev) => ({ ...prev, [selectedId]: full }))
         hydrate(full)
         setMode('view')
       } catch (e) {
@@ -437,24 +536,29 @@ const Workflows = () => {
         if (!cancel) setLoadingDetails(false)
       }
     })()
-    return () => { cancel = true }
+    return () => {
+      cancel = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, selectedId])
 
   const ensureDetails = async (name, cache, setSelected, setLoading, fetchOne, setCache, setParams) => {
-    if (!name) { setSelected(null); return }
+    if (!name) {
+      setSelected(null)
+      return
+    }
     const c = cache[name]
     if (c) {
       setSelected(c)
-      setParams(p => (Object.keys(p || {}).length ? p : buildDefaults(c)))
+      setParams((p) => (Object.keys(p || {}).length ? p : buildDefaults(c)))
       return
     }
     try {
       setLoading(true)
       const d = await fetchOne(name)
-      setCache(prev => ({ ...prev, [name]: d }))
+      setCache((prev) => ({ ...prev, [name]: d }))
       setSelected(d)
-      setParams(p => (Object.keys(p || {}).length ? p : buildDefaults(d)))
+      setParams((p) => (Object.keys(p || {}).length ? p : buildDefaults(d)))
     } finally {
       setLoading(false)
     }
@@ -462,24 +566,71 @@ const Workflows = () => {
 
   useEffect(() => {
     if (!token) return
-    ensureDetails(actionName, actionDetailsByName, setSelectedActionDetails, setLoadingActionDetails, apiGetActionDetails, setActionDetailsByName, setActionParams)
+    ensureDetails(
+      actionName,
+      actionDetailsByName,
+      setSelectedActionDetails,
+      setLoadingActionDetails,
+      apiGetActionDetails,
+      setActionDetailsByName,
+      setActionParams
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, actionName])
 
   useEffect(() => {
     if (!token) return
-    if (!modifierName) { setSelectedModifierDetails(null); return }
-    ensureDetails(modifierName, modifierDetailsByName, setSelectedModifierDetails, setLoadingModifierDetails, apiGetModifierDetails, setModifierDetailsByName, setModifierParams)
+    if (!modifierName) {
+      setSelectedModifierDetails(null)
+      return
+    }
+    ensureDetails(
+      modifierName,
+      modifierDetailsByName,
+      setSelectedModifierDetails,
+      setLoadingModifierDetails,
+      apiGetModifierDetails,
+      setModifierDetailsByName,
+      setModifierParams
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, modifierName])
 
   useEffect(() => {
     if (!token) return
-    ensureDetails(reactionName, reactionDetailsByName, setSelectedReactionDetails, setLoadingReactionDetails, apiGetReactionDetails, setReactionDetailsByName, setReactionParams)
+    ensureDetails(
+      reactionName,
+      reactionDetailsByName,
+      setSelectedReactionDetails,
+      setLoadingReactionDetails,
+      apiGetReactionDetails,
+      setReactionDetailsByName,
+      setReactionParams
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, reactionName])
 
-  const onCreate = () => { setMode('create'); resetForm() }
+  // Reference rules:
+  // - Modifier string params can reference outputs from Action: "#<outputName>"
+  // - Reaction string params can reference outputs from Action or Modifier: "#<outputName>"
+  const actionReferenceOptions = useMemo(() => buildReferenceOptionsFromDetails(selectedActionDetails), [selectedActionDetails])
+  const modifierReferenceOptions = useMemo(() => buildReferenceOptionsFromDetails(selectedModifierDetails), [selectedModifierDetails])
+
+  const reactionReferenceOptions = useMemo(() => {
+    const combined = [...actionReferenceOptions, ...modifierReferenceOptions]
+    const seen = new Set()
+    return combined.filter((o) => {
+      if (seen.has(o.value)) return false
+      seen.add(o.value)
+      return true
+    })
+  }, [actionReferenceOptions, modifierReferenceOptions])
+
+  const onCreate = () => {
+    setMode('create')
+    resetForm()
+  }
+
   const onCancel = () => {
     setMode('view')
     if (selectedWorkflowDetails) hydrate(selectedWorkflowDetails)
@@ -527,15 +678,15 @@ const Workflows = () => {
 
       const patched = await apiPatchWorkflow(id, full)
 
-      setWorkflows(prev => {
-        const exists = prev.some(w => (w.WorkflowID ?? w.ID ?? w.id) === id)
+      setWorkflows((prev) => {
+        const exists = prev.some((w) => (w.WorkflowID ?? w.ID ?? w.id) === id)
         const light = { WorkflowID: patched?.WorkflowID ?? id, Name: patched?.Name ?? full.Name, Active: patched?.Active ?? full.Active }
         return exists
-          ? prev.map(w => ((w.WorkflowID ?? w.ID ?? w.id) === id ? { ...w, ...light } : w))
+          ? prev.map((w) => ((w.WorkflowID ?? w.ID ?? w.id) === id ? { ...w, ...light } : w))
           : [...prev, light]
       })
 
-      setDetailsById(prev => ({ ...prev, [id]: patched }))
+      setDetailsById((prev) => ({ ...prev, [id]: patched }))
       setSelectedId(id)
       setMode('view')
       hydrate(patched)
@@ -558,8 +709,8 @@ const Workflows = () => {
       setSaving(true)
       setError('')
       await apiDeleteWorkflow(selectedId)
-      setWorkflows(prev => prev.filter(w => (w.WorkflowID ?? w.ID ?? w.id) !== selectedId))
-      setDetailsById(prev => {
+      setWorkflows((prev) => prev.filter((w) => (w.WorkflowID ?? w.ID ?? w.id) !== selectedId))
+      setDetailsById((prev) => {
         const c = { ...prev }
         delete c[selectedId]
         return c
@@ -663,14 +814,17 @@ const Workflows = () => {
               <div className="p-4 text-sm text-gray-500 dark:text-gray-400">No workflows found.</div>
             ) : (
               <ul className="py-2">
-                {workflows.map(w => {
+                {workflows.map((w) => {
                   const id = w.WorkflowID ?? w.ID ?? w.id
                   const label = w.Name || `Workflow #${id}`
                   return (
                     <li key={id}>
                       <button
                         type="button"
-                        onClick={() => { setSelectedId(id); setMode('view') }}
+                        onClick={() => {
+                          setSelectedId(id)
+                          setMode('view')
+                        }}
                         className={
                           'w-full text-left px-4 py-2 text-base transition ' +
                           (id === selectedId
@@ -724,7 +878,7 @@ const Workflows = () => {
                 <input
                   type="text"
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
                              bg-white text-gray-900 border-gray-300
                              dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
@@ -733,8 +887,10 @@ const Workflows = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <input id="active" type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} />
-                <label htmlFor="active" className="text-sm text-gray-700 dark:text-gray-200">Active</label>
+                <input id="active" type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+                <label htmlFor="active" className="text-sm text-gray-700 dark:text-gray-200">
+                  Active
+                </label>
               </div>
 
               <SelectWithDetails
@@ -749,7 +905,7 @@ const Workflows = () => {
                 selectedDetails={selectedActionDetails}
                 emptyOptionsText="No actions available"
               />
-              <ParamsEditor title="Action" details={selectedActionDetails} values={actionParams} setKV={kvAction} />
+              <ParamsEditor title="Action" details={selectedActionDetails} values={actionParams} setKV={kvAction} referenceOptions={[]} />
 
               <SelectWithDetails
                 label="Modifier"
@@ -763,7 +919,13 @@ const Workflows = () => {
                 detailsLoading={loadingModifierDetails}
                 selectedDetails={selectedModifierDetails}
               />
-              <ParamsEditor title="Modifier" details={selectedModifierDetails} values={modifierParams} setKV={kvModifier} />
+              <ParamsEditor
+                title="Modifier"
+                details={selectedModifierDetails}
+                values={modifierParams}
+                setKV={kvModifier}
+                referenceOptions={actionReferenceOptions}
+              />
 
               <SelectWithDetails
                 label="Reaction"
@@ -777,7 +939,13 @@ const Workflows = () => {
                 selectedDetails={selectedReactionDetails}
                 emptyOptionsText="No reactions available"
               />
-              <ParamsEditor title="Reaction" details={selectedReactionDetails} values={reactionParams} setKV={kvReaction} />
+              <ParamsEditor
+                title="Reaction"
+                details={selectedReactionDetails}
+                values={reactionParams}
+                setKV={kvReaction}
+                referenceOptions={reactionReferenceOptions}
+              />
 
               <div className="flex items-center gap-3 mt-4">
                 <button
@@ -785,12 +953,10 @@ const Workflows = () => {
                   disabled={saving || loadingDetails}
                   className={
                     'px-4 py-2 rounded-lg text-sm font-medium text-white ' +
-                    (saving || loadingDetails
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 transition')
+                    (saving || loadingDetails ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 transition')
                   }
                 >
-                  {saving ? (isCreate ? 'Creating...' : 'Saving...') : (isCreate ? 'Create workflow' : 'Update workflow')}
+                  {saving ? (isCreate ? 'Creating...' : 'Saving...') : isCreate ? 'Create workflow' : 'Update workflow'}
                 </button>
 
                 <button
@@ -833,12 +999,7 @@ const Workflows = () => {
 
           {logsOpen ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center px-4" aria-modal="true" role="dialog">
-              <button
-                type="button"
-                onClick={closeLogs}
-                className="absolute inset-0 bg-black/40"
-                aria-label="Close logs modal"
-              />
+              <button type="button" onClick={closeLogs} className="absolute inset-0 bg-black/40" aria-label="Close logs modal" />
 
               <div className="relative w-full max-w-3xl max-h-[80vh] rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
@@ -919,9 +1080,7 @@ const Workflows = () => {
                               <span className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
                                 {typ || 'LOG'}
                               </span>
-                              {ts ? (
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{ts}</span>
-                              ) : null}
+                              {ts ? <span className="text-xs text-gray-500 dark:text-gray-400">{ts}</span> : null}
                             </div>
                             <p className="mt-2 text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap break-words">
                               {String(msg)}
@@ -936,11 +1095,7 @@ const Workflows = () => {
             </div>
           ) : null}
 
-          <Toast
-            type={toast.type}
-            message={toast.message}
-            onClose={() => setToast({ type: 'success', message: '' })}
-          />
+          <Toast type={toast.type} message={toast.message} onClose={() => setToast({ type: 'success', message: '' })} />
         </section>
       </div>
     </main>

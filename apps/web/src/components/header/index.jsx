@@ -22,7 +22,7 @@ const Header = () => {
                          dark:bg-gray-900 dark:text-gray-100 dark:border-gray-800">
         {/* Logo */}
         <div className="font-semibold">
-          logo
+          AREA
         </div>
 
         {/* Logged in as */}
@@ -43,7 +43,7 @@ const Header = () => {
                          bg-white text-blue-600 hover:bg-blue-100
                          dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
             >
-              Se déconnecter
+              Disconnect
             </button>
           ) : (
             <Link
@@ -52,7 +52,7 @@ const Header = () => {
                          bg-white text-blue-600 hover:bg-blue-100
                          dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
             >
-              Se connecter
+              Connect
             </Link>
           )}
         </div>
@@ -73,7 +73,7 @@ const Header = () => {
                   : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-900')
               }
             >
-              Mes Providers
+              My Providers
             </Link>
 
             <Link
@@ -85,7 +85,7 @@ const Header = () => {
                   : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-900')
               }
             >
-              Mes Workflows
+              My Workflows
             </Link>
 
             <Link
@@ -97,7 +97,7 @@ const Header = () => {
                   : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-900')
               }
             >
-              Paramètres
+              Settings
             </Link>
           </nav>
         </aside>
