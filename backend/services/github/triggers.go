@@ -37,6 +37,13 @@ func RemoveNewStarOnRepo(ctx models.Context) error {
 }
 
 func checkNewStarOnRepo(ctx models.Context) {
+	target, targetOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "star_target_repository", ctx)
+
+	if !targetOK {
+		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, "Missing parameters.")
+		return
+	}
+
 	var count int64
 	if rst := initializers.DB.
 		Model(&ProviderGithubAuthData{}).
@@ -59,10 +66,8 @@ func checkNewStarOnRepo(ctx models.Context) {
 	}
 
 	token := OwnerOAuth2Access.AccessToken
-	owner := "dawpitech"
-	repo := "area"
 
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/stargazers", owner, repo)
+	url := fmt.Sprintf("https://api.github.com/repos/%s/stargazers", target)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Print(err)
