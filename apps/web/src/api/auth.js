@@ -15,11 +15,16 @@ async function request(path, options = {}) {
     if (!API_ROOT) {
         throw new Error('REACT_APP_API_URL is not defined')
     }
+
     const token = getTokenFromCookie()
 
     const headers = {
-        'Content-Type': 'application/json',
+        Accept: 'application/json',
         ...(options.headers || {}),
+    }
+
+    if (options.body && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json'
     }
 
     if (token) {
@@ -46,7 +51,6 @@ async function request(path, options = {}) {
 
     return data
 }
-
 export function apiSignIn(email, password) {
     return request('/auth/sign-in', {
         method: 'POST',
@@ -74,14 +78,72 @@ export function apiGithubCheck() {
 }
 
 export function apiGetWorkflows() {
-    return request('/workflows', {
+    return request('/workflow/', {
         method: 'GET',
     })
 }
 
 export function apiCreateWorkflow(body) {
-    return request('/workflows', {
+    return request('/workflow/', {
         method: 'POST',
         body: JSON.stringify(body),
     })
+}
+
+export function apiGetWorkflow(id) {
+    return request(`/workflow/${id}`, {
+        method: 'GET',
+    })
+}
+
+export function apiGetActions() {
+    return request('/action/', {
+        method: 'GET'
+    })
+}
+
+export function apiGetActionDetails(name) {
+    return request(`/action/${encodeURIComponent(name)}`, {
+        method: 'GET',
+    })
+}
+
+export function apiGetModifiers() {
+    return request('/modifiers/', { method: 'GET' })
+}
+
+export function apiGetModifierDetails(name) {
+    return request(`/modifiers/${encodeURIComponent(name)}`, { method: 'GET' })
+}
+
+export function apiGetReactions() {
+    return request('/reaction/', { method: 'GET' })
+}
+
+export function apiGetReactionDetails(name) {
+    return request(`/reaction/${encodeURIComponent(name)}`, { method: 'GET' })
+}
+
+export function apiCheckWorkflow(body) {
+    return request('/workflow/check', {
+        method: 'POST',
+        body: JSON.stringify(body),
+    })
+}
+
+export function apiPatchWorkflow(id, body) {
+    return request(`/workflow/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+    })
+}
+
+export function apiDeleteWorkflow(id) {
+    return request(`/workflow/${id}`, {
+        method: 'DELETE'
+    })
+}
+
+export function apiGetWorkflowLogs(id) {
+    return request(`/logs/workflow/${id}`, { method: 'GET' })
 }

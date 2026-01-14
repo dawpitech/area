@@ -31,7 +31,6 @@ const Register = () => {
 
     try {
       await register(email, password)
-      // tu m’avais dit : après signup, on va login page
       navigate('/login')
     } catch (err) {
       setErrorMessage(err.message || 'Erreur lors de la création du compte')
