@@ -9,9 +9,31 @@ import (
 )
 
 var Provider = models.Service{
-	Name:      "Github",
-	Hidden:    false,
-	Actions:   nil,
+	Name:   "Github",
+	Hidden: false,
+	Actions: []models.Action{
+		{
+			Name:        "github_new_star",
+			PrettyName:  "Receive a star on a Github repository",
+			Description: "Trigger when a new star is added on the specified Github repository",
+			Parameters: []models.Parameter{
+				{
+					Name:       "star_target_repository",
+					PrettyName: "Target repository",
+					Type:       models.String,
+				},
+			},
+			Outputs: []models.Parameter{
+				{
+					Name:       "new_star_user",
+					PrettyName: "User that had the star",
+					Type:       models.String,
+				},
+			},
+			SetupTrigger:  TriggerNewStarOnRepo,
+			RemoveTrigger: RemoveNewStarOnRepo,
+		},
+	},
 	Modifiers: nil,
 	Reactions: []models.Reaction{
 		{
