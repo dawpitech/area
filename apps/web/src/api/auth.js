@@ -147,3 +147,15 @@ export function apiDeleteWorkflow(id) {
 export function apiGetWorkflowLogs(id) {
     return request(`/logs/workflow/${id}`, { method: 'GET' })
 }
+
+export function apiGoogleInit() {
+    return request('/providers/google/auth/init?platform=web', {
+        method: 'GET',
+    })
+}
+
+export function apiGoogleCheck() {
+    return request('/providers/google/auth/check', {
+        method: 'GET',
+    })
+}

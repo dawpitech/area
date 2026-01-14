@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/authContext'
-import { apiGithubInit, apiGithubCheck } from '../../api/auth'
-import { FaGithub, FaDiscord, FaSteam, FaInstagram } from 'react-icons/fa'
+import {
+  apiGithubInit,
+  apiGithubCheck,
+  apiGoogleInit,
+  apiGoogleCheck,
+} from '../../api/auth'
+import { FaGithub } from 'react-icons/fa'
+import { FcGoogle } from 'react-icons/fc'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 
 const Home = () => {
@@ -13,26 +19,44 @@ const Home = () => {
   const [githubConnected, setGithubConnected] = useState(false)
   const [checkingGithub, setCheckingGithub] = useState(false)
 
-  useEffect(() => {
+  const [googleConnected, setGoogleConnected] = useState(false)
+  const [checkingGoogle, setCheckingGoogle] = useState(false)
+
+  const checkProviders = async () => {
     if (!token) {
       setGithubConnected(false)
+      setGoogleConnected(false)
       return
     }
 
-    const check = async () => {
-      try {
-        setCheckingGithub(true)
-        const data = await apiGithubCheck()
-        setGithubConnected(!!data.is_connected)
-      } catch (err) {
-        console.error('GitHub check error:', err)
-        setGithubConnected(false)
-      } finally {
-        setCheckingGithub(false)
-      }
-    }
+    try {
+      setCheckingGithub(true)
+      setCheckingGoogle(true)
 
-    check()
+      const [gh, gg] = await Promise.allSettled([apiGithubCheck(), apiGoogleCheck()])
+
+      setGithubConnected(gh.status === 'fulfilled' ? !!gh.value?.is_connected : false)
+      setGoogleConnected(gg.status === 'fulfilled' ? !!gg.value?.is_connected : false)
+    } catch (err) {
+      console.error('Provider check error:', err)
+      setGithubConnected(false)
+      setGoogleConnected(false)
+    } finally {
+      setCheckingGithub(false)
+      setCheckingGoogle(false)
+    }
+  }
+
+  useEffect(() => {
+    checkProviders()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
+
+  useEffect(() => {
+    const onFocus = () => checkProviders()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   const handleConnect = async (provider) => {
@@ -54,16 +78,35 @@ const Home = () => {
           }
         } catch (err) {
           console.error(err)
-          alert('Erreur lors de la connexion GitHub (voir console).')
+          alert('Error during GitHub login (see console).')
         }
         break
       }
 
-      case 'discord':
-      case 'steam':
-      case 'instagram':
+      case 'google': {
+        if (!token) {
+          alert('You must be logged in to connect Google.')
+          return
+        }
+        if (googleConnected) return
+
+        try {
+          const data = await apiGoogleInit()
+          if (data && data.redirect_to) {
+            window.open(data.redirect_to, '_blank', 'noopener,noreferrer')
+          } else {
+            console.error('Unexpected Google init response:', data)
+            alert('Erreur: missing redirect URL')
+          }
+        } catch (err) {
+          console.error(err)
+          alert('Error during google login (see console).')
+        }
+        break
+      }
+
       default:
-        alert('Connexion pas encore implémentée')
+        alert('Provider not yet implemented')
         break
     }
   }
@@ -164,38 +207,24 @@ const Home = () => {
 
             <button
               type="button"
-              onClick={() => handleConnect('discord')}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border shadow-sm 
-                         bg-[#5865F2] text-white
-                         transition duration-300 ease-out
-                         hover:-translate-y-0.5 hover:shadow-xl hover:ring-2 hover:ring-[#5865F2]/70"
+              onClick={() => handleConnect('google')}
+              disabled={googleConnected || checkingGoogle}
+              className={
+                'flex items-center justify-center gap-2 px-4 py-3 rounded-lg border shadow-sm transition duration-300 ease-out ' +
+                (googleConnected
+                  ? 'bg-green-600 text-white cursor-default border-green-600'
+                  : 'bg-white text-gray-900 border-gray-200 hover:-translate-y-0.5 hover:shadow-xl hover:ring-2 hover:ring-gray-300/70 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700 dark:hover:ring-gray-600/70') +
+                (checkingGoogle ? ' opacity-70 cursor-wait' : '')
+              }
             >
-              <FaDiscord size={18} />
-              <span className="font-medium text-sm">Connect Discord</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleConnect('steam')}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border shadow-sm
-                         bg-[#171a21] text-white
-                         transition duration-300 ease-out
-                         hover:-translate-y-0.5 hover:shadow-xl hover:ring-2 hover:ring-[#66c0f4]/70"
-            >
-              <FaSteam size={18} />
-              <span className="font-medium text-sm">Connect Steam</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleConnect('instagram')}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border shadow-sm
-                         bg-gradient-to-r from-[#f58529] via-[#dd2a7b] to-[#515bd4] text-white
-                         transition duration-300 ease-out
-                         hover:-translate-y-0.5 hover:shadow-xl hover:ring-2 hover:ring-[#dd2a7b]/70"
-            >
-              <FaInstagram size={18} />
-              <span className="font-medium text-sm">Connect Instagram</span>
+              <FcGoogle size={18} />
+              <span className="font-medium text-sm">
+                {checkingGoogle
+                  ? 'Checking...'
+                  : googleConnected
+                    ? 'Connected to Google'
+                    : 'Connect Google'}
+              </span>
             </button>
           </div>
         </div>
