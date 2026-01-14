@@ -74,7 +74,7 @@ const Home = () => {
             window.open(data.redirect_to, '_blank', 'noopener,noreferrer')
           } else {
             console.error('Unexpected GitHub init response:', data)
-            alert('Erreur: missing redirect URL')
+            alert('Error: missing redirect URL')
           }
         } catch (err) {
           console.error(err)
@@ -96,11 +96,11 @@ const Home = () => {
             window.open(data.redirect_to, '_blank', 'noopener,noreferrer')
           } else {
             console.error('Unexpected Google init response:', data)
-            alert('Erreur: missing redirect URL')
+            alert('Error: missing redirect URL')
           }
         } catch (err) {
           console.error(err)
-          alert('Error during google login (see console).')
+          alert('Error during Google login (see console).')
         }
         break
       }
@@ -162,7 +162,7 @@ const Home = () => {
                   onClick={() => setShowPassword(prev => !prev)}
                   className="absolute inset-y-0 right-2 my-auto flex items-center justify-center text-gray-500 hover:text-indigo-600 transition
                              dark:text-gray-400 dark:hover:text-indigo-400"
-                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
                 </button>

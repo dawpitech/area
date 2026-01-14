@@ -1,44 +1,49 @@
 import Login from "./components/auth/login";
 import Register from "./components/auth/register";
+import RequireAuth from "./components/auth/RequireAuth";
 
 import Header from "./components/header";
 import Home from "./components/home";
-
-import Workflows from "./components/workflows"
-
-import Settings from "./components/settings"
+import Workflows from "./components/workflows";
+import Settings from "./components/settings";
 
 import { AuthProvider } from "./contexts/authContext";
 import { useRoutes } from "react-router-dom";
 
 function App() {
   const routesArray = [
-    {
-      path: "*",
-      element: <Login />,
-    },
-    {
-      path: "/login",
-      element: <Login />,
-    },
-    {
-      path: "/register",
-      element: <Register />,
-    },
+    { path: "*", element: <Login /> },
+    { path: "/login", element: <Login /> },
+    { path: "/register", element: <Register /> },
+
     {
       path: "/home",
-      element: <Home />,
+      element: (
+        <RequireAuth>
+          <Home />
+        </RequireAuth>
+      ),
     },
     {
       path: "/workflow",
-      element: <Workflows />,
+      element: (
+        <RequireAuth>
+          <Workflows />
+        </RequireAuth>
+      ),
     },
     {
       path: "/settings",
-      element: <Settings />,
+      element: (
+        <RequireAuth>
+          <Settings />
+        </RequireAuth>
+      ),
     },
   ];
-  let routesElement = useRoutes(routesArray);
+
+  const routesElement = useRoutes(routesArray);
+
   return (
     <AuthProvider>
       <Header />
