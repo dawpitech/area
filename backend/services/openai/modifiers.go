@@ -32,7 +32,7 @@ func HandlerAskChatGPT(ctx models.Context) error {
 		context.Background(),
 		responses.ResponseNewParams{
 			Input: responses.ResponseNewParamsInputUnion{OfString: openai.String(prompt)},
-			Model: openai.ChatModelGPT4,
+			Model: "gpt-5.2",
 		},
 	)
 	if err != nil {
