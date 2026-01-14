@@ -337,7 +337,7 @@ const Workflows = () => {
   const [selectedReactionDetails, setSelectedReactionDetails] = useState(null)
 
   const [actionName, setActionName] = useState('')
-  const [modifierName, setModifierName] = useState('') // will be set to backend "None" when loaded
+  const [modifierName, setModifierName] = useState('')
   const [reactionName, setReactionName] = useState('')
 
   const [actionParams, setActionParams] = useState({})
@@ -485,8 +485,6 @@ const Workflows = () => {
         const list = Array.isArray(data?.ModifiersName) ? data.ModifiersName : []
         if (cancel) return
         setModifiers(list)
-
-        // set default modifier to backend "None" if not set yet
         setModifierName((prev) => (prev ? prev : findBackendNoneModifier(list)))
 
         await preloadList(list, preloadedModifiersRef, apiGetModifierDetails, setModifierDetailsByName)
