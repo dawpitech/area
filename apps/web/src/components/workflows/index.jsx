@@ -49,7 +49,6 @@ const coerce = (type, raw) => {
 const isRefValue = (v) => typeof v === 'string' && v.startsWith('#') && v.length > 1
 
 /**
- * IMPORTANT:
  * Available references must come from details.Outputs (NOT details.Parameters).
  * Each reference is stored as "#<outputName>".
  */
@@ -106,7 +105,6 @@ const DetailsPanel = ({ label, loading, details }) => (
 const SelectWithDetails = ({
   label,
   required,
-  optionalLabel,
   loading,
   options,
   value,
@@ -115,8 +113,10 @@ const SelectWithDetails = ({
   detailsLoading,
   selectedDetails,
   emptyOptionsText,
+  placeholderOverride,
+  includeEmptyOption,
 }) => {
-  const placeholder = required ? `Select a ${label.toLowerCase()}` : optionalLabel || `No ${label.toLowerCase()}`
+  const placeholder = placeholderOverride || `Select a ${label.toLowerCase()}`
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
@@ -133,9 +133,9 @@ const SelectWithDetails = ({
           <option value="" disabled>
             {loading ? `Loading ${label.toLowerCase()}...` : placeholder}
           </option>
-        ) : (
+        ) : includeEmptyOption ? (
           <option value="">{loading ? `Loading ${label.toLowerCase()}...` : placeholder}</option>
-        )}
+        ) : null}
 
         {options.length === 0 && !loading && emptyOptionsText ? <option value="" disabled>{emptyOptionsText}</option> : null}
 
@@ -170,7 +170,7 @@ const StringParamSelect = ({ label, value, onChange, referenceOptions }) => {
           if (next === CUSTOM) {
             onChange(refExists ? '' : (value ?? ''))
           } else {
-            onChange(next) // stored as "#<outputName>"
+            onChange(next)
           }
         }}
         className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
@@ -337,7 +337,7 @@ const Workflows = () => {
   const [selectedReactionDetails, setSelectedReactionDetails] = useState(null)
 
   const [actionName, setActionName] = useState('')
-  const [modifierName, setModifierName] = useState('')
+  const [modifierName, setModifierName] = useState('') // will be set to backend "None" when loaded
   const [reactionName, setReactionName] = useState('')
 
   const [actionParams, setActionParams] = useState({})
@@ -381,11 +381,18 @@ const Workflows = () => {
     [detailsById, selectedId]
   )
 
+  const findBackendNoneModifier = (mods) => {
+    const list = Array.isArray(mods) ? mods : []
+    const byName = list.find((n) => String(n).trim().toLowerCase() === 'none')
+    if (byName) return byName
+    return ''
+  }
+
   const resetForm = () => {
     setName('')
     setActive(true)
     setActionName('')
-    setModifierName('')
+    setModifierName(findBackendNoneModifier(modifiers))
     setReactionName('')
     setActionParams({})
     setModifierParams({})
@@ -400,7 +407,8 @@ const Workflows = () => {
     setName(wf.Name ?? '')
     setActive(Boolean(wf.Active))
     setActionName(wf.ActionName ?? '')
-    setModifierName(wf.ModifierName ?? '')
+    const wfMod = (wf.ModifierName ?? '').trim()
+    setModifierName(wfMod ? wfMod : findBackendNoneModifier(modifiers))
     setReactionName(wf.ReactionName ?? '')
     setActionParams(safeObj(wf.ActionParameters))
     setModifierParams(safeObj(wf.ModifierParameters))
@@ -477,6 +485,10 @@ const Workflows = () => {
         const list = Array.isArray(data?.ModifiersName) ? data.ModifiersName : []
         if (cancel) return
         setModifiers(list)
+
+        // set default modifier to backend "None" if not set yet
+        setModifierName((prev) => (prev ? prev : findBackendNoneModifier(list)))
+
         await preloadList(list, preloadedModifiersRef, apiGetModifierDetails, setModifierDetailsByName)
       } catch (e) {
         console.error(e)
@@ -610,12 +622,8 @@ const Workflows = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, reactionName])
 
-  // Reference rules:
-  // - Modifier string params can reference outputs from Action: "#<outputName>"
-  // - Reaction string params can reference outputs from Action or Modifier: "#<outputName>"
   const actionReferenceOptions = useMemo(() => buildReferenceOptionsFromDetails(selectedActionDetails), [selectedActionDetails])
   const modifierReferenceOptions = useMemo(() => buildReferenceOptionsFromDetails(selectedModifierDetails), [selectedModifierDetails])
-
   const reactionReferenceOptions = useMemo(() => {
     const combined = [...actionReferenceOptions, ...modifierReferenceOptions]
     const seen = new Set()
@@ -904,13 +912,13 @@ const Workflows = () => {
                 detailsLoading={loadingActionDetails}
                 selectedDetails={selectedActionDetails}
                 emptyOptionsText="No actions available"
+                includeEmptyOption={true}
               />
               <ParamsEditor title="Action" details={selectedActionDetails} values={actionParams} setKV={kvAction} referenceOptions={[]} />
 
               <SelectWithDetails
                 label="Modifier"
                 required={false}
-                optionalLabel="No modifier"
                 loading={loadingModifiers}
                 options={modifiers}
                 value={modifierName}
@@ -918,6 +926,7 @@ const Workflows = () => {
                 detailsByName={modifierDetailsByName}
                 detailsLoading={loadingModifierDetails}
                 selectedDetails={selectedModifierDetails}
+                includeEmptyOption={false}
               />
               <ParamsEditor
                 title="Modifier"
@@ -938,6 +947,7 @@ const Workflows = () => {
                 detailsLoading={loadingReactionDetails}
                 selectedDetails={selectedReactionDetails}
                 emptyOptionsText="No reactions available"
+                includeEmptyOption={true}
               />
               <ParamsEditor
                 title="Reaction"
@@ -999,7 +1009,12 @@ const Workflows = () => {
 
           {logsOpen ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center px-4" aria-modal="true" role="dialog">
-              <button type="button" onClick={closeLogs} className="absolute inset-0 bg-black/40" aria-label="Close logs modal" />
+              <button
+                type="button"
+                onClick={closeLogs}
+                className="absolute inset-0 bg-black/40"
+                aria-label="Close logs modal"
+              />
 
               <div className="relative w-full max-w-3xl max-h-[80vh] rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
