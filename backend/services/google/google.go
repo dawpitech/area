@@ -2,16 +2,31 @@ package google
 
 import (
 	"dawpitech/area/models"
+	"github.com/go-co-op/gocron/v2"
+	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 	"os"
 )
 
+var scheduler gocron.Scheduler
+var workflowJobUUID = make(map[uint]uuid.UUID)
+
 var Provider = models.Service{
-	Name:      "Google",
-	Hidden:    false,
-	Actions:   nil,
+	Name:   "Google",
+	Hidden: false,
+	Actions: []models.Action{
+		{
+			Name:          "google_is_in_a_meeting",
+			PrettyName:    "Is in a meeting",
+			Description:   "Trigger if you are in a meeting based on your google calendar agenda",
+			Parameters:    nil,
+			Outputs:       nil,
+			SetupTrigger:  TriggerIsInAMeeting,
+			RemoveTrigger: RemoveIsInAMeeting,
+		},
+	},
 	Modifiers: nil,
 	Reactions: []models.Reaction{
 		{
