@@ -6,11 +6,72 @@ import (
 	"dawpitech/area/engines/workflowEngine"
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
+	"encoding/base64"
 	"github.com/juju/errors"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"
 )
+
+func HandlerSendEmail(ctx models.Context) error {
+	var count int64
+	if rst := initializers.DB.
+		Model(&ProviderGoogleAuthData{}).
+		Where("user_id=?", ctx.OwnerUserID).
+		Count(&count); rst.Error != nil {
+		return errors.New("Internal server error.")
+	}
+
+	if count < 1 {
+		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, "No Google Account linked, a github action cannot be used.")
+		return errors.New("The user has not google account linked.")
+	}
+
+	// FETCH PARAMETERS
+	target := "maxime@patate.dev"
+	subject := "prout"
+	body := "haha coubeh"
+
+	var OwnerOAuth2Access ProviderGoogleAuthData
+	rst := initializers.DB.Where("user_id=?", ctx.OwnerUserID).First(&OwnerOAuth2Access)
+	if rst.Error != nil {
+		return errors.New("Workflow owner doesn't exist")
+	}
+
+	token := oauth2.Token{
+		AccessToken: OwnerOAuth2Access.AccessToken,
+		TokenType:   "Bearer",
+	}
+
+	client := oauthConfig.Client(context.Background(), &token)
+	srv, err := gmail.NewService(context.Background(), option.WithHTTPClient(client))
+	if err != nil {
+		return errors.New(err.Error())
+	}
+
+	sender, err := getGmailAddress(client)
+
+	if err != nil {
+		return err
+	}
+
+	var msg gmail.Message
+	rawMsg := []byte(
+		"From:" + sender + "\r\n" +
+			"To: " + target + "\r\n" +
+			"Subject: " + subject + "\r\n\r\n" +
+			body)
+
+	msg.Raw = base64.URLEncoding.EncodeToString(rawMsg)
+
+	_, err = srv.Users.Messages.Send("me", &msg).Do()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func HandlerNewCalendarEvent(ctx models.Context) error {
 	var count int64

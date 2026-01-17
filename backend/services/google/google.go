@@ -5,6 +5,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/gmail/v1"
 	"os"
 )
 
@@ -57,6 +58,29 @@ var Provider = models.Service{
 			},
 			Handler: HandlerNewCalendarEvent,
 		},
+		{
+			Name:        "google_send_email",
+			PrettyName:  "Send email from Gmail",
+			Description: "Send an e-mail from your gmail account",
+			Parameters: []models.Parameter{
+				{
+					Name:       "google_send_email_target",
+					PrettyName: "Target email address",
+					Type:       models.String,
+				},
+				{
+					Name:       "google_send_email_body",
+					PrettyName: "Email body",
+					Type:       models.String,
+				},
+				{
+					Name:       "google_send_email_subject",
+					PrettyName: "Email subject",
+					Type:       models.String,
+				},
+			},
+			Handler: HandlerSendEmail,
+		},
 	},
 	AuthMethod: &models.Authentification{
 		HandlerAuthInit:     AuthGoogleInit,
@@ -75,5 +99,7 @@ var oauthConfig = &oauth2.Config{
 	RedirectURL:  os.Getenv("PUBLIC_URL") + "/providers/google/auth/callback",
 	Scopes: []string{
 		calendar.CalendarScope,
+		gmail.GmailReadonlyScope,
+		gmail.GmailSendScope,
 	},
 }
