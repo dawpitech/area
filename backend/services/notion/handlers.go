@@ -7,7 +7,6 @@ import (
 	"dawpitech/area/initializers"
 	"dawpitech/area/models"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -100,6 +99,5 @@ func HandlerNotionRespondToThread(ctx models.Context) error {
 	}(resp.Body)
 
 	_, _ = io.ReadAll(resp.Body)
-	fmt.Printf("Response status: %s\n", resp.Status)
 	return nil
 }
