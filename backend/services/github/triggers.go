@@ -101,7 +101,7 @@ func checkNewCommitOnRepo(ctx models.Context) {
 
 	token := OwnerOAuth2Access.AccessToken
 
-	url := fmt.Sprintf("https://api.github.com/repos/%s/commits? sha=%s&per_page=1", target, branch)
+	url := fmt.Sprintf("https://api.github.com/repos/%s/commits?sha=%s&per_page=1", target, branch)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Print(err)
