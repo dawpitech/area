@@ -16,6 +16,7 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		[]fizz.OperationOption{
 			fizz.Summary("Register a new user"),
 		},
+		middlewares.RateLimitMiddleWare,
 		tonic.Handler(controllers.CreateNewUser, 200),
 	)
 	authRoutes.POST(
@@ -23,6 +24,7 @@ func RegisterRoutes(fizzRouter *fizz.Fizz) {
 		[]fizz.OperationOption{
 			fizz.Summary("Log-in"),
 		},
+		middlewares.RateLimitMiddleWare,
 		tonic.Handler(controllers.LoginUser, 200),
 	)
 
