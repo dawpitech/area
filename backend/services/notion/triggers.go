@@ -1,19 +1,35 @@
 package notion
 
 import (
+	"dawpitech/area/engines/workflowEngine"
+	"dawpitech/area/models"
 	"encoding/json"
 	"io"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/go-co-op/gocron/v2"
+	"github.com/google/uuid"
+	"github.com/juju/errors"
+
 	"github.com/gin-gonic/gin"
 )
 
 var (
-	mu     sync.Mutex
-	events []any
+	mu              sync.Mutex
+	events          []any
+	scheduler       gocron.Scheduler
+	workflowJobUUID = make(map[uint]uuid.UUID)
 )
+
+func init() {
+	var err error
+	if scheduler, err = gocron.NewScheduler(); err != nil {
+		log.Panic("Module notion couldn't init a job scheduler")
+	}
+	scheduler.Start()
+}
 
 func StoreEvent(event any) {
 	mu.Lock()
@@ -25,6 +41,23 @@ func GetEvents() []any {
 	mu.Lock()
 	defer mu.Unlock()
 	return append([]any{}, events...)
+}
+
+func ClearEventsByType(eventType string) {
+	mu.Lock()
+	defer mu.Unlock()
+	var filteredEvents []any
+	for _, eventInterface := range events {
+		event, ok := eventInterface.(WebhookEvent)
+		if !ok {
+			filteredEvents = append(filteredEvents, eventInterface)
+			continue
+		}
+		if event.Type != eventType {
+			filteredEvents = append(filteredEvents, eventInterface)
+		}
+	}
+	events = filteredEvents
 }
 
 type WebhookEvent struct {
@@ -44,7 +77,7 @@ type WebhookEvent struct {
 	Data map[string]any `json:"data"`
 }
 
-func TriggerNotionPageCreated(g *gin.Context) error {
+func TriggerNotion(g *gin.Context) error {
 	body, err := io.ReadAll(g.Request.Body)
 	if err != nil {
 		return err
@@ -66,47 +99,152 @@ func TriggerNotionPageCreated(g *gin.Context) error {
 	}
 
 	StoreEvent(event)
-	HandleNotionEvent(event)
 
 	g.Status(200)
 	return nil
 }
 
-func HandleNotionEvent(event WebhookEvent) {
-	switch event.Type {
+func EmptyRemove(ctx models.Context) error {
+	return nil
+}
 
-	case "page.created":
-		OnPageCreated(event)
+func checkNotionPageCreated(ctx models.Context) {
+	events := GetEvents()
 
-	case "page.deleted":
-		OnPageDeleted(event)
+	for _, eventInterface := range events {
+		event, ok := eventInterface.(WebhookEvent)
+		if !ok {
+			continue
+		}
 
-	case "page.undeleted":
-		OnPageUndeleted(event)
+		if event.Type == "page.created" {
+			ctx.RuntimeData = make(map[string]string)
+			ctx.RuntimeData["page_id"] = event.Entity.ID
+			ctx.RuntimeData["timestamp"] = event.Timestamp.Format(time.RFC3339)
+			ctx.RuntimeData["workspace_id"] = event.WorkspaceID
 
-	default:
-		log.Printf("Unhandled Notion event: %s", event.Type)
+			ClearEventsByType("page.created")
+			workflowEngine.RunWorkflow(ctx)
+			return
+		}
 	}
 }
 
-func OnPageCreated(event WebhookEvent) {
-	log.Printf(
-		"[Notion] Page created: page_id=%s at %s\n",
-		event.Entity.ID,
-		event.Timestamp,
-	)
+func checkNotionPageDeleted(ctx models.Context) {
+	events := GetEvents()
+
+	for _, eventInterface := range events {
+		event, ok := eventInterface.(WebhookEvent)
+		if !ok {
+			continue
+		}
+
+		if event.Type == "page.deleted" {
+			ctx.RuntimeData = make(map[string]string)
+			ctx.RuntimeData["page_id"] = event.Entity.ID
+			ctx.RuntimeData["timestamp"] = event.Timestamp.Format(time.RFC3339)
+			ctx.RuntimeData["workspace_id"] = event.WorkspaceID
+
+			ClearEventsByType("page.deleted")
+			workflowEngine.RunWorkflow(ctx)
+			return
+		}
+	}
 }
 
-func OnPageDeleted(event WebhookEvent) {
-	log.Printf(
-		"[Notion] Page deleted: page_id=%s\n",
-		event.Entity.ID,
-	)
+func checkNotionPageRestored(ctx models.Context) {
+	events := GetEvents()
+
+	for _, eventInterface := range events {
+		event, ok := eventInterface.(WebhookEvent)
+		if !ok {
+			continue
+		}
+
+		if event.Type == "page.undeleted" {
+			ctx.RuntimeData = make(map[string]string)
+			ctx.RuntimeData["page_id"] = event.Entity.ID
+			ctx.RuntimeData["timestamp"] = event.Timestamp.Format(time.RFC3339)
+			ctx.RuntimeData["workspace_id"] = event.WorkspaceID
+
+			ClearEventsByType("page.undeleted")
+			workflowEngine.RunWorkflow(ctx)
+			return
+		}
+	}
 }
 
-func OnPageUndeleted(event WebhookEvent) {
-	log.Printf(
-		"[Notion] Page restored: page_id=%s\n",
-		event.Entity.ID,
+func SetupNotionPageCreatedTrigger(ctx models.Context) error {
+	ClearEventsByType("page.created")
+
+	job, err := scheduler.NewJob(
+		gocron.CronJob("* * * * *", false),
+		gocron.NewTask(checkNotionPageCreated, ctx),
 	)
+
+	if err != nil {
+		return errors.New("Set-up of the trigger failed, please re-try later. Err: " + err.Error())
+	}
+	workflowJobUUID[ctx.WorkflowID] = job.ID()
+
+	return nil
+}
+
+func RemoveNotionPageCreatedTrigger(ctx models.Context) error {
+	err := scheduler.RemoveJob(workflowJobUUID[ctx.WorkflowID])
+	if err != nil {
+		return errors.New("Removal of given job resulted in an error. Err " + err.Error())
+	}
+	delete(workflowJobUUID, ctx.WorkflowID)
+	return nil
+}
+
+func SetupNotionPageDeletedTrigger(ctx models.Context) error {
+	ClearEventsByType("page.deleted")
+
+	job, err := scheduler.NewJob(
+		gocron.CronJob("* * * * *", false),
+		gocron.NewTask(checkNotionPageDeleted, ctx),
+	)
+
+	if err != nil {
+		return errors.New("Set-up of the trigger failed, please re-try later. Err: " + err.Error())
+	}
+	workflowJobUUID[ctx.WorkflowID] = job.ID()
+
+	return nil
+}
+
+func RemoveNotionPageDeletedTrigger(ctx models.Context) error {
+	err := scheduler.RemoveJob(workflowJobUUID[ctx.WorkflowID])
+	if err != nil {
+		return errors.New("Removal of given job resulted in an error. Err " + err.Error())
+	}
+	delete(workflowJobUUID, ctx.WorkflowID)
+	return nil
+}
+
+func SetupNotionPageRestoredTrigger(ctx models.Context) error {
+	ClearEventsByType("page.undeleted")
+
+	job, err := scheduler.NewJob(
+		gocron.CronJob("* * * * *", false),
+		gocron.NewTask(checkNotionPageRestored, ctx),
+	)
+
+	if err != nil {
+		return errors.New("Set-up of the trigger failed, please re-try later. Err: " + err.Error())
+	}
+	workflowJobUUID[ctx.WorkflowID] = job.ID()
+
+	return nil
+}
+
+func RemoveNotionPageRestoredTrigger(ctx models.Context) error {
+	err := scheduler.RemoveJob(workflowJobUUID[ctx.WorkflowID])
+	if err != nil {
+		return errors.New("Removal of given job resulted in an error. Err " + err.Error())
+	}
+	delete(workflowJobUUID, ctx.WorkflowID)
+	return nil
 }
