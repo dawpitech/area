@@ -13,8 +13,8 @@ var rateLimitStore ratelimit.Store
 func init() {
 	rateLimitStore = ratelimit.InMemoryStore(
 		&ratelimit.InMemoryOptions{
-			Rate:  time.Minute,
-			Limit: 2,
+			Rate:  time.Second * 10,
+			Limit: 5,
 			Skip:  nil,
 		})
 	RateLimitMiddleWare = ratelimit.RateLimiter(
