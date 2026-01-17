@@ -127,7 +127,6 @@ func checkNewStarOnRepo(ctx models.Context) {
 			continue
 		}
 
-		log.Print("Has trying to check star count")
 		if now.Sub(starredAt) <= time.Minute {
 			workflowEngine.RunWorkflow(ctx)
 			return
