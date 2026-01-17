@@ -33,6 +33,37 @@ var Provider = models.Service{
 			SetupTrigger:  TriggerNewStarOnRepo,
 			RemoveTrigger: RemoveNewStarOnRepo,
 		},
+		{
+			Name:        "github_new_commit",
+			PrettyName:  "New commit on a repo",
+			Description: "Trigger when the specified repo has a new commit pushed",
+			Parameters: []models.Parameter{
+				{
+					Name:       "commit_target_repository",
+					PrettyName: "Target repository",
+					Type:       models.String,
+				},
+				{
+					Name:       "commit_target_branch",
+					PrettyName: "Target git branch",
+					Type:       models.String,
+				},
+			},
+			Outputs: []models.Parameter{
+				{
+					Name:       "github_new_commit_message",
+					PrettyName: "Commit message",
+					Type:       models.String,
+				},
+				{
+					Name:       "github_new_commit_author",
+					PrettyName: "Commit author",
+					Type:       models.String,
+				},
+			},
+			SetupTrigger:  TriggerNewCommitOnRepo,
+			RemoveTrigger: RemoveNewCommitOnRepo,
+		},
 	},
 	Modifiers: nil,
 	Reactions: []models.Reaction{
