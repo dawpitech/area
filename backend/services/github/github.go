@@ -65,6 +65,7 @@ var Provider = models.Service{
 		HandlerAuthCallback: AuthGithubCallback,
 		HandlerAuthCheck:    AuthGithubCheck,
 	},
+	WebhookEndpoints: nil,
 	DBModels: []interface{}{
 		&ProviderGithubAuthData{},
 	},

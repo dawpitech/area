@@ -38,6 +38,7 @@ var Provider = models.Service{
 		HandlerAuthCallback: AuthNotionCallback,
 		HandlerAuthCheck:    AuthNotionCheck,
 	},
+	WebhookEndpoints: nil,
 	DBModels: []interface{}{
 		&ProviderNotionAuthData{},
 	},

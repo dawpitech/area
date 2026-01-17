@@ -82,5 +82,14 @@ func RegisterServiceRoutes(router *fizz.Fizz) {
 				tonic.Handler(service.AuthMethod.HandlerAuthCheck, 200),
 			)
 		}
+		if service.WebhookEndpoints != nil {
+			for _, endpoint := range service.WebhookEndpoints {
+				providersRoute.POST(
+					endpoint.EndpointURL,
+					[]fizz.OperationOption{},
+					tonic.Handler(endpoint.HandlerMethod, 200),
+				)
+			}
+		}
 	}
 }

@@ -1,5 +1,7 @@
 package models
 
+import "github.com/gin-gonic/gin"
+
 type Handler func(Context) error
 
 type Context struct {
@@ -85,12 +87,20 @@ type Reaction struct {
 	Handler     Handler
 }
 
+type WebhookHandler func(gin.Context) error
+
+type WebhookEndpoint struct {
+	EndpointURL   string
+	HandlerMethod WebhookHandler
+}
+
 type Service struct {
-	Name       string
-	Hidden     bool
-	Actions    []Action
-	Modifiers  []Modifier
-	Reactions  []Reaction
-	AuthMethod *Authentification
-	DBModels   []interface{}
+	Name             string
+	Hidden           bool
+	Actions          []Action
+	Modifiers        []Modifier
+	Reactions        []Reaction
+	AuthMethod       *Authentification
+	WebhookEndpoints []WebhookEndpoint
+	DBModels         []interface{}
 }

@@ -46,8 +46,9 @@ var Provider = models.Service{
 				SetupTrigger: TriggerLaunchAtJob,
 			},*/
 	},
-	Modifiers:  nil,
-	Reactions:  nil,
-	AuthMethod: nil,
-	DBModels:   nil,
+	Modifiers:        nil,
+	Reactions:        nil,
+	AuthMethod:       nil,
+	WebhookEndpoints: nil,
+	DBModels:         nil,
 }

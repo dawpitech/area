@@ -37,6 +37,7 @@ var Provider = models.Service{
 			Handler:     HandlerEmpty,
 		},
 	},
-	AuthMethod: nil,
-	DBModels:   nil,
+	AuthMethod:       nil,
+	WebhookEndpoints: nil,
+	DBModels:         nil,
 }

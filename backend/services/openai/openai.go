@@ -28,7 +28,8 @@ var Provider = models.Service{
 			Handler: HandlerAskChatGPT,
 		},
 	},
-	Reactions:  nil,
-	AuthMethod: nil,
-	DBModels:   nil,
+	Reactions:        nil,
+	AuthMethod:       nil,
+	WebhookEndpoints: nil,
+	DBModels:         nil,
 }

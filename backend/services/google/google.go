@@ -114,6 +114,7 @@ var Provider = models.Service{
 		HandlerAuthCallback: AuthGoogleCallback,
 		HandlerAuthCheck:    AuthGoogleCheck,
 	},
+	WebhookEndpoints: nil,
 	DBModels: []interface{}{
 		&ProviderGoogleAuthData{},
 	},
