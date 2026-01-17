@@ -14,6 +14,58 @@ import (
 	"google.golang.org/api/option"
 )
 
+func HandlerEmptyTrash(ctx models.Context) error {
+	var count int64
+	if rst := initializers.DB.
+		Model(&ProviderGoogleAuthData{}).
+		Where("user_id=?", ctx.OwnerUserID).
+		Count(&count); rst.Error != nil {
+		return errors.New("Internal server error.")
+	}
+
+	if count < 1 {
+		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, "No Google Account linked, a github action cannot be used.")
+		return errors.New("The user has not google account linked.")
+	}
+
+	var OwnerOAuth2Access ProviderGoogleAuthData
+	rst := initializers.DB.Where("user_id=?", ctx.OwnerUserID).First(&OwnerOAuth2Access)
+	if rst.Error != nil {
+		return errors.New("Workflow owner doesn't exist")
+	}
+
+	token := oauth2.Token{
+		AccessToken: OwnerOAuth2Access.AccessToken,
+		TokenType:   "Bearer",
+	}
+
+	client := oauthConfig.Client(context.Background(), &token)
+	srv, err := gmail.NewService(context.Background(), option.WithHTTPClient(client))
+	if err != nil {
+		return errors.New(err.Error())
+	}
+
+	listCall := srv.Users.Messages.List("me").Q("in:trash")
+	messagesResponse, err := listCall.Do()
+	if err != nil {
+		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, "Failed to list trash messages:  "+err.Error())
+		return errors.New("Failed to list trash messages: " + err.Error())
+	}
+
+	if messagesResponse.Messages != nil {
+		for _, msg := range messagesResponse.Messages {
+			err = srv.Users.Messages.Delete("me", msg.Id).Do()
+			if err != nil {
+				logEngine.NewLogEntry(ctx.WorkflowID, models.WarnLog, "Failed to delete message "+msg.Id+": "+err.Error())
+				continue
+			}
+		}
+	}
+
+	logEngine.NewLogEntry(ctx.WorkflowID, models.InfoLog, "Gmail trash emptied successfully.")
+	return nil
+}
+
 func HandlerSendEmail(ctx models.Context) error {
 	var count int64
 	if rst := initializers.DB.

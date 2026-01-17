@@ -81,6 +81,13 @@ var Provider = models.Service{
 			},
 			Handler: HandlerSendEmail,
 		},
+		{
+			Name:        "google_clear_gmail_trash",
+			PrettyName:  "Clear the trash inbox",
+			Description: "Empty out your trash inbox of your gmail account",
+			Parameters:  nil,
+			Handler:     HandlerEmptyTrash,
+		},
 	},
 	AuthMethod: &models.Authentification{
 		HandlerAuthInit:     AuthGoogleInit,
