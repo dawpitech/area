@@ -24,7 +24,6 @@ func HandlerEmptyTrash(ctx models.Context) error {
 	}
 
 	if count < 1 {
-		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, "No Google Account linked, a github action cannot be used.")
 		return errors.New("The user has not google account linked.")
 	}
 
@@ -48,7 +47,6 @@ func HandlerEmptyTrash(ctx models.Context) error {
 	listCall := srv.Users.Messages.List("me").Q("in:trash")
 	messagesResponse, err := listCall.Do()
 	if err != nil {
-		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, "Failed to list trash messages:  "+err.Error())
 		return errors.New("Failed to list trash messages: " + err.Error())
 	}
 
