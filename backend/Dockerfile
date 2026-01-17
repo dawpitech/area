@@ -1,6 +1,7 @@
 FROM golang:alpine AS base
 WORKDIR /app
 
+ENV GOEXPERIMENT=jsonv2
 FROM base AS deps
 COPY go.mod go.sum ./
 RUN go mod download

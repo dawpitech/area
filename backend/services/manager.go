@@ -3,6 +3,7 @@ package services
 import (
 	"dawpitech/area/middlewares"
 	"dawpitech/area/models"
+	"dawpitech/area/services/buttplug"
 	"dawpitech/area/services/discord_webhook"
 	"dawpitech/area/services/github"
 	"dawpitech/area/services/google"
@@ -27,6 +28,7 @@ var Services = []models.Service{
 	discord_webhook.Provider,
 	google.Provider,
 	notion.Provider,
+	buttplug.Provider,
 }
 
 func Init() {
