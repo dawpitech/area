@@ -13,6 +13,7 @@ import (
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"
+	"log"
 	"time"
 )
 
@@ -23,6 +24,14 @@ var emailJobUUID = make(map[uint]uuid.UUID)
 
 var KnownMeetingCooldownTable = make(map[uint]time.Time)
 var lastCheckedMessageID = make(map[uint]string)
+
+func init() {
+	var err error
+	if scheduler, err = gocron.NewScheduler(); err != nil {
+		log.Panic("Module google couldn't init a job scheduler")
+	}
+	scheduler.Start()
+}
 
 func RemoveNewEmailReceived(ctx models.Context) error {
 	err := scheduler.RemoveJob(emailJobUUID[ctx.WorkflowID])

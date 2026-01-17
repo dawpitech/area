@@ -59,7 +59,7 @@ func HandlerCreateAnIssue(ctx models.Context) error {
 
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		log.Fatal(err.Error())
+		return err
 	}
 
 	url := fmt.Sprintf("https://api.github.com/repos/%s/issues", target)

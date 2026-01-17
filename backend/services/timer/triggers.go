@@ -5,7 +5,16 @@ import (
 	"dawpitech/area/models"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/juju/errors"
+	"log"
 )
+
+func init() {
+	var err error
+	if scheduler, err = gocron.NewScheduler(); err != nil {
+		log.Panic("Module timer couldn't init a job scheduler")
+	}
+	scheduler.Start()
+}
 
 /*
 func TriggerLaunchAtJob(ctx models.TriggerContext) error {
