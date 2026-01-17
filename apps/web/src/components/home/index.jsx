@@ -5,16 +5,15 @@ import {
   apiGithubCheck,
   apiGoogleInit,
   apiGoogleCheck,
+  apiNotionInit,
+  apiNotionCheck,
 } from '../../api/auth'
 import { FaGithub } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
-import { FiEye, FiEyeOff } from 'react-icons/fi'
+import { SiNotion } from 'react-icons/si'
 
 const Home = () => {
   const { email, token } = useAuth()
-
-  const [showPassword, setShowPassword] = useState(false)
-  const displayedPassword = showPassword ? 'not-stored-client-side' : '************'
 
   const [githubConnected, setGithubConnected] = useState(false)
   const [checkingGithub, setCheckingGithub] = useState(false)
@@ -22,28 +21,40 @@ const Home = () => {
   const [googleConnected, setGoogleConnected] = useState(false)
   const [checkingGoogle, setCheckingGoogle] = useState(false)
 
+  const [notionConnected, setNotionConnected] = useState(false)
+  const [checkingNotion, setCheckingNotion] = useState(false)
+
   const checkProviders = async () => {
     if (!token) {
       setGithubConnected(false)
       setGoogleConnected(false)
+      setNotionConnected(false)
       return
     }
 
     try {
       setCheckingGithub(true)
       setCheckingGoogle(true)
+      setCheckingNotion(true)
 
-      const [gh, gg] = await Promise.allSettled([apiGithubCheck(), apiGoogleCheck()])
+      const [gh, gg, nn] = await Promise.allSettled([
+        apiGithubCheck(),
+        apiGoogleCheck(),
+        apiNotionCheck(),
+      ])
 
       setGithubConnected(gh.status === 'fulfilled' ? !!gh.value?.is_connected : false)
       setGoogleConnected(gg.status === 'fulfilled' ? !!gg.value?.is_connected : false)
+      setNotionConnected(nn.status === 'fulfilled' ? !!nn.value?.is_connected : false)
     } catch (err) {
       console.error('Provider check error:', err)
       setGithubConnected(false)
       setGoogleConnected(false)
+      setNotionConnected(false)
     } finally {
       setCheckingGithub(false)
       setCheckingGoogle(false)
+      setCheckingNotion(false)
     }
   }
 
@@ -60,56 +71,37 @@ const Home = () => {
   }, [token])
 
   const handleConnect = async (provider) => {
-    switch (provider) {
-      case 'github': {
-        if (!token) {
-          alert('You must be logged in to connect GitHub.')
-          return
-        }
-        if (githubConnected) return
+    if (!token) {
+      alert(`You must be logged in to connect ${provider}.`)
+      return
+    }
 
-        try {
-          const data = await apiGithubInit()
-          if (data && data.redirect_to) {
-            window.open(data.redirect_to, '_blank', 'noopener,noreferrer')
-          } else {
-            console.error('Unexpected GitHub init response:', data)
-            alert('Error: missing redirect URL')
-          }
-        } catch (err) {
-          console.error(err)
-          alert('Error during GitHub login (see console).')
-        }
-        break
+    try {
+      let data
+      if (provider === 'github' && !githubConnected) data = await apiGithubInit()
+      if (provider === 'google' && !googleConnected) data = await apiGoogleInit()
+      if (provider === 'notion' && !notionConnected) data = await apiNotionInit()
+
+      if (data?.redirect_to) {
+        window.open(data.redirect_to, '_blank', 'noopener,noreferrer')
+      } else {
+        alert('Error: missing redirect URL')
       }
-
-      case 'google': {
-        if (!token) {
-          alert('You must be logged in to connect Google.')
-          return
-        }
-        if (googleConnected) return
-
-        try {
-          const data = await apiGoogleInit()
-          if (data && data.redirect_to) {
-            window.open(data.redirect_to, '_blank', 'noopener,noreferrer')
-          } else {
-            console.error('Unexpected Google init response:', data)
-            alert('Error: missing redirect URL')
-          }
-        } catch (err) {
-          console.error(err)
-          alert('Error during Google login (see console).')
-        }
-        break
-      }
-
-      default:
-        alert('Provider not yet implemented')
-        break
+    } catch (err) {
+      console.error(err)
+      alert(`Error during ${provider} login (see console).`)
     }
   }
+
+  // 🎨 Styles unifiés
+  const btnBase =
+    'flex items-center justify-center gap-2 px-4 py-3 rounded-lg border shadow-sm transition duration-300 ease-out'
+  const btnHover =
+    'hover:-translate-y-0.5 hover:shadow-xl hover:ring-2'
+  const btnLight =
+    'bg-white text-gray-900 border-gray-200 hover:ring-gray-300/70'
+  const btnDark =
+    'dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700 dark:hover:ring-gray-600/70'
 
   return (
     <main className="w-full min-h-screen pt-12 pl-64 px-4 bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors">
@@ -129,49 +121,15 @@ const Home = () => {
             Account information
           </h2>
 
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-200">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email || ''}
-                readOnly
-                className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
-                           bg-gray-50 text-gray-700 border-gray-300
-                           dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-600 dark:text-gray-200">
-                Password
-              </label>
-              <div className="relative mt-1">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={displayedPassword}
-                  readOnly
-                  className="w-full px-3 py-2 pr-10 border rounded-lg outline-none focus:border-indigo-600 transition
-                             bg-gray-50 text-gray-700 border-gray-300
-                             dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(prev => !prev)}
-                  className="absolute inset-y-0 right-2 my-auto flex items-center justify-center text-gray-500 hover:text-indigo-600 transition
-                             dark:text-gray-400 dark:hover:text-indigo-400"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                For security reasons, the real password is not stored on the client.
-              </p>
-            </div>
-          </div>
+          <label className="text-sm font-medium text-gray-600 dark:text-gray-200">Email</label>
+          <input
+            type="email"
+            value={email || ''}
+            readOnly
+            className="mt-1 w-full px-3 py-2 border rounded-lg outline-none
+                       bg-gray-50 text-gray-700 border-gray-300
+                       dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
+          />
         </div>
 
         <div className="bg-white dark:bg-gray-950 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 px-6 py-6">
@@ -182,48 +140,49 @@ const Home = () => {
             Link your favorite platforms to unlock more features.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <button
-              type="button"
               onClick={() => handleConnect('github')}
               disabled={githubConnected || checkingGithub}
-              className={
-                'flex items-center justify-center gap-2 px-4 py-3 rounded-lg border shadow-sm transition duration-300 ease-out ' +
-                (githubConnected
-                  ? 'bg-green-600 text-white cursor-default border-green-600'
-                  : 'bg-gray-900 text-white border-gray-800 hover:-translate-y-0.5 hover:shadow-xl hover:ring-2 hover:ring-gray-400/70') +
-                (checkingGithub ? ' opacity-70 cursor-wait' : '')
-              }
+              className={`${btnBase} ${
+                githubConnected
+                  ? 'bg-green-600 text-white border-green-600 cursor-default'
+                  : `${btnLight} ${btnDark} ${btnHover}`
+              } ${checkingGithub ? 'opacity-70 cursor-wait' : ''}`}
             >
               <FaGithub size={18} />
               <span className="font-medium text-sm">
-                {checkingGithub
-                  ? 'Checking...'
-                  : githubConnected
-                    ? 'Connected to Github'
-                    : 'Connect Github'}
+                {checkingGithub ? 'Checking...' : githubConnected ? 'Connected to GitHub' : 'Connect GitHub'}
               </span>
             </button>
 
             <button
-              type="button"
               onClick={() => handleConnect('google')}
               disabled={googleConnected || checkingGoogle}
-              className={
-                'flex items-center justify-center gap-2 px-4 py-3 rounded-lg border shadow-sm transition duration-300 ease-out ' +
-                (googleConnected
-                  ? 'bg-green-600 text-white cursor-default border-green-600'
-                  : 'bg-white text-gray-900 border-gray-200 hover:-translate-y-0.5 hover:shadow-xl hover:ring-2 hover:ring-gray-300/70 dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700 dark:hover:ring-gray-600/70') +
-                (checkingGoogle ? ' opacity-70 cursor-wait' : '')
-              }
+              className={`${btnBase} ${
+                googleConnected
+                  ? 'bg-green-600 text-white border-green-600 cursor-default'
+                  : `${btnLight} ${btnDark} ${btnHover}`
+              } ${checkingGoogle ? 'opacity-70 cursor-wait' : ''}`}
             >
               <FcGoogle size={18} />
               <span className="font-medium text-sm">
-                {checkingGoogle
-                  ? 'Checking...'
-                  : googleConnected
-                    ? 'Connected to Google'
-                    : 'Connect Google'}
+                {checkingGoogle ? 'Checking...' : googleConnected ? 'Connected to Google' : 'Connect Google'}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleConnect('notion')}
+              disabled={notionConnected || checkingNotion}
+              className={`${btnBase} ${
+                notionConnected
+                  ? 'bg-green-600 text-white border-green-600 cursor-default'
+                  : `${btnLight} ${btnDark} ${btnHover}`
+              } ${checkingNotion ? 'opacity-70 cursor-wait' : ''}`}
+            >
+              <SiNotion size={18} />
+              <span className="font-medium text-sm">
+                {checkingNotion ? 'Checking...' : notionConnected ? 'Connected to Notion' : 'Connect Notion'}
               </span>
             </button>
           </div>

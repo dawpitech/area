@@ -159,3 +159,15 @@ export function apiGoogleCheck() {
         method: 'GET',
     })
 }
+
+export function apiNotionInit() {
+    return request('/providers/notion/auth/init?platform=web', {
+        method: 'GET',
+    })
+}
+
+export function apiNotionCheck() {
+    return request('/providers/notion/auth/check', {
+        method: 'GET',
+    })
+}
