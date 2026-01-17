@@ -19,14 +19,6 @@ import (
 var scheduler gocron.Scheduler
 var workflowJobUUID = make(map[uint]uuid.UUID)
 
-func init() {
-	var err error
-	if scheduler, err = gocron.NewScheduler(); err != nil {
-		log.Panic("Module github couldn't init a job scheduler")
-	}
-	scheduler.Start()
-}
-
 type StarDetail struct {
 	StarredAt string `json:"starred_at"`
 	User      struct {
@@ -127,6 +119,7 @@ func checkNewStarOnRepo(ctx models.Context) {
 			continue
 		}
 
+		log.Print("Has trying to check star count")
 		if now.Sub(starredAt) <= time.Minute {
 			workflowEngine.RunWorkflow(ctx)
 			return
