@@ -16,6 +16,11 @@ var Provider = models.Service{
 			Description: "Vibrate a connected Buttplug device",
 			Parameters: []models.Parameter{
 				{
+					Name:       "buttplug_server_ip",
+					PrettyName: "Buttplug.io websocket Server IP",
+					Type:       models.String,
+				},
+				{
 					Name:       "buttplug_vibrate_device_intensity",
 					PrettyName: "Vibration Intensity (0 - 100)",
 					Type:       models.String,

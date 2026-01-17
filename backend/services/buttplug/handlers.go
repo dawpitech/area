@@ -23,7 +23,7 @@ type Config struct {
 }
 
 var config = Config{
-	Addr:        "ws://192.168.1.20:12345/", //assumes a local buttplug server is running here (i used intiface)
+	Addr:        "",
 	SetLevel:    1.0,
 	PollSensors: 10 * time.Second,
 }
@@ -36,8 +36,9 @@ type Session struct {
 func VibrateHandler(ctx models.Context) error {
 	vibrationAmount, vibrationAmountOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "buttplug_vibrate_device_intensity", ctx)
 	vibrationDuration, vibrationDurationOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "buttplug_vibrate_device_duration", ctx)
+	buttplugServer, buttplugServerOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "buttplug_server_ip", ctx)
 
-	if !(vibrationAmountOK && vibrationDurationOK) {
+	if !(vibrationAmountOK && vibrationDurationOK && buttplugServerOK) {
 		return errors.New("Missing parameters")
 	}
 
@@ -52,6 +53,7 @@ func VibrateHandler(ctx models.Context) error {
 
 	config.SetLevel = float64(amount) / 100.0
 	config.PollSensors = time.Duration(duration) * time.Second
+	config.Addr = "ws://" + buttplugServer + ":12345/"
 
 	go runVibration(config)
 	return nil
