@@ -130,6 +130,15 @@ const Header = () => {
             >
               Settings
             </Link>
+
+            <a
+              href="/client.apk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={baseNavItem + ' ' + inactiveNavItem}
+            >
+              Download Mobile App
+            </a>
           </nav>
         </aside>
       )}
