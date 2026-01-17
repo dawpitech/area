@@ -11,7 +11,7 @@ import (
 
 func GetAllLogsByWorkflow(_ *gin.Context, in *routes.WorkflowID) (*routes.GetAllLogsByWorkflowResponse, error) {
 	var logs []models.LogEntry
-	if rst := initializers.DB.Find(&logs).Where("workflow_id=?", in.WorkflowID); rst.Error != nil {
+	if rst := initializers.DB.Where("workflow_id=?", in.WorkflowID).Find(&logs); rst.Error != nil {
 		return nil, errors.New("Internal server error.")
 	}
 	var response routes.GetAllLogsByWorkflowResponse
