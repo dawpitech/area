@@ -95,7 +95,8 @@ func HandlerNotionRespondToThread(ctx models.Context) error {
 		}
 	}(resp.Body)
 
-	bytedata, _ := io.ReadAll(resp.Body)
+	_, _ = io.ReadAll(resp.Body)
+	bytedata, _ := io.ReadAll(req.Body)
 	fmt.Printf(string(bytedata))
 	fmt.Printf("Response status: %s\n", resp.Status)
 	return nil
