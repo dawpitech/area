@@ -51,3 +51,42 @@ jobs:
         with:
           name: area-mobile-release
           path: apps/mobile/app/build/outputs/apk/release/app-release.apk
+
+  build-frontend:
+    if: github.repository_owner == 'dawpitech'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: cd apps/web && npm ci
+
+      - name: Build frontend
+        run: cd apps/web && npm run build
+
+  deploy:
+    if: github.repository_owner == 'dawpitech' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [compile, build-mobile-release, build-frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to remote server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: area.dawoox.dev
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd area
+            git pull
+            docker compose -f docker-compose.prod.yml up --build -d
