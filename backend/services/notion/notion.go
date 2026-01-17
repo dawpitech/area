@@ -38,7 +38,12 @@ var Provider = models.Service{
 		HandlerAuthCallback: AuthNotionCallback,
 		HandlerAuthCheck:    AuthNotionCheck,
 	},
-	WebhookEndpoints: nil,
+	WebhookEndpoints: []models.WebhookEndpoint{
+		{
+			EndpointURL:   "/providers/notion/webhooks/1",
+			HandlerMethod: TriggerNotionPageCreated,
+		},
+	},
 	DBModels: []interface{}{
 		&ProviderNotionAuthData{},
 	},
