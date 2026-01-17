@@ -46,16 +46,16 @@ func Init() {
 				publicActionsCount++
 			}
 		}
-		for x := 0; x < len(service.Reactions); x++ {
-			stores.ReactionStore[service.Reactions[x].Name] = service.Reactions[x]
-			stores.ReactionList = append(stores.ReactionList, service.Reactions[x])
+		for x := 0; x < len(service.Modifiers); x++ {
+			stores.ModifierStore[service.Modifiers[x].Name] = service.Modifiers[x]
+			stores.ModifierList = append(stores.ModifierList, service.Modifiers[x])
 			if !service.Hidden {
 				publicModifiersCount++
 			}
 		}
-		for x := 0; x < len(service.Modifiers); x++ {
-			stores.ModifierStore[service.Modifiers[x].Name] = service.Modifiers[x]
-			stores.ModifierList = append(stores.ModifierList, service.Modifiers[x])
+		for x := 0; x < len(service.Reactions); x++ {
+			stores.ReactionStore[service.Reactions[x].Name] = service.Reactions[x]
+			stores.ReactionList = append(stores.ReactionList, service.Reactions[x])
 			if !service.Hidden {
 				publicReactionsCount++
 			}
