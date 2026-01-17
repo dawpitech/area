@@ -64,11 +64,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: apps/web/package-lock.json
 
       - name: Install dependencies
-        run: cd apps/web && npm ci
+        run: cd apps/web && npm install
 
       - name: Build frontend
         run: cd apps/web && npm run build
