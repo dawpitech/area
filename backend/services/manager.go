@@ -13,6 +13,7 @@ import (
 	"dawpitech/area/services/timer"
 	"dawpitech/area/stores"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/loopfz/gadgeto/tonic"
@@ -32,21 +33,39 @@ var Services = []models.Service{
 }
 
 func Init() {
+	var publicServicesCount, publicActionsCount, publicModifiersCount, publicReactionsCount uint
 	for i := 0; i < len(Services); i++ {
 		service := Services[i]
+		if !service.Hidden {
+			publicServicesCount++
+		}
 		for x := 0; x < len(service.Actions); x++ {
 			stores.ActionStore[service.Actions[x].Name] = service.Actions[x]
 			stores.ActionList = append(stores.ActionList, service.Actions[x])
+			if !service.Hidden {
+				publicActionsCount++
+			}
 		}
 		for x := 0; x < len(service.Reactions); x++ {
 			stores.ReactionStore[service.Reactions[x].Name] = service.Reactions[x]
 			stores.ReactionList = append(stores.ReactionList, service.Reactions[x])
+			if !service.Hidden {
+				publicModifiersCount++
+			}
 		}
 		for x := 0; x < len(service.Modifiers); x++ {
 			stores.ModifierStore[service.Modifiers[x].Name] = service.Modifiers[x]
 			stores.ModifierList = append(stores.ModifierList, service.Modifiers[x])
+			if !service.Hidden {
+				publicReactionsCount++
+			}
 		}
 	}
+
+	log.Printf("Manager loaded %d services (%d public)\n", len(Services), publicServicesCount)
+	log.Printf("\t%d Actions (%d public)\n", len(stores.ActionList), publicActionsCount)
+	log.Printf("\t%d Modifiers (%d public)\n", len(stores.ModifierList), publicModifiersCount)
+	log.Printf("\t%d Reactions (%d public)\n", len(stores.ReactionList), publicReactionsCount)
 }
 
 func RegisterServiceRoutes(router *fizz.Fizz) {
