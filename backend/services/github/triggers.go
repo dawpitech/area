@@ -153,12 +153,7 @@ func checkNewCommitOnRepo(ctx models.Context) {
 
 	latestCommit := commits[0]
 
-	if _, exists := lastCommitSHA[ctx.WorkflowID]; !exists {
-		lastCommitSHA[ctx.WorkflowID] = latestCommit.SHA
-		return
-	}
-
-	if lastCommitSHA[ctx.WorkflowID] != latestCommit.SHA {
+	if lastSHA, exists := lastCommitSHA[ctx.WorkflowID]; exists && lastSHA != latestCommit.SHA {
 		lastCommitSHA[ctx.WorkflowID] = latestCommit.SHA
 		ctx.RuntimeData["github_new_commit_message"] = latestCommit.Commit.Message
 		ctx.RuntimeData["github_new_commit_author"] = latestCommit.Commit.Author.Name
@@ -167,6 +162,76 @@ func checkNewCommitOnRepo(ctx models.Context) {
 }
 
 func TriggerNewCommitOnRepo(ctx models.Context) error {
+	target, targetOK := workflowEngine.GetParam(workflowEngine.Trigger, "commit_target_repository", ctx)
+	branch, branchOK := workflowEngine.GetParam(workflowEngine.Trigger, "commit_target_branch", ctx)
+
+	if !targetOK || !branchOK {
+		return errors.New("Missing required parameters: commit_target_repository or commit_target_branch")
+	}
+
+	var count int64
+	if rst := initializers.DB.
+		Model(&ProviderGithubAuthData{}).
+		Where("user_id=?", ctx.OwnerUserID).
+		Count(&count); rst.Error != nil {
+		return errors.New("Internal server error")
+	}
+
+	if count < 1 {
+		return errors.New("No Github Account linked, a github action cannot be used")
+	}
+
+	var OwnerOAuth2Access ProviderGithubAuthData
+	rst := initializers.DB.Where("user_id=?", ctx.OwnerUserID).First(&OwnerOAuth2Access)
+	if rst.Error != nil {
+		return errors.New("Internal server error")
+	}
+
+	token := OwnerOAuth2Access.AccessToken
+
+	url := fmt.Sprintf("https://api.github.com/repos/%s/commits?sha=%s&per_page=1", target, branch)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return errors.New("Github API is not reachable")
+	}
+
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	client := &http.Client{}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.New("Github API is not reachable")
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(fmt.Sprintf("Github API error: %s", resp.Status))
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return errors.New("Failed to read response body")
+	}
+
+	var commits []CommitDetail
+	if err := json.Unmarshal(respBody, &commits); err != nil {
+		return errors.New("Failed to parse Github response")
+	}
+
+	if len(commits) == 0 {
+		return errors.New("No commits found for the specified branch")
+	}
+
+	lastCommitSHA[ctx.WorkflowID] = commits[0].SHA
+
 	job, err := commitScheduler.NewJob(
 		gocron.CronJob("* * * * *", false),
 		gocron.NewTask(checkNewCommitOnRepo, ctx),
