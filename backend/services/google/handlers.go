@@ -28,10 +28,13 @@ func HandlerSendEmail(ctx models.Context) error {
 		return errors.New("The user has not google account linked.")
 	}
 
-	// FETCH PARAMETERS
-	target := "maxime@patate.dev"
-	subject := "prout"
-	body := "haha coubeh"
+	target, targetOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "google_send_email_target", ctx)
+	body, bodyOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "google_send_email_body", ctx)
+	subject, subjectOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "google_send_email_subject", ctx)
+
+	if !(targetOK || bodyOK || subjectOK) {
+		return errors.New("Missing parameters")
+	}
 
 	var OwnerOAuth2Access ProviderGoogleAuthData
 	rst := initializers.DB.Where("user_id=?", ctx.OwnerUserID).First(&OwnerOAuth2Access)
