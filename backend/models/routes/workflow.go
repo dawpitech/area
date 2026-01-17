@@ -1,7 +1,7 @@
 package routes
 
 type WorkflowID struct {
-	WorkflowID uint `path:"id"`
+	WorkflowID uint `path:"id" validate:"required"`
 }
 
 type GetAllWorkflowResponse struct {
