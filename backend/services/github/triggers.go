@@ -70,6 +70,7 @@ func RemoveNewCommitOnRepo(ctx models.Context) error {
 }
 
 func checkNewCommitOnRepo(ctx models.Context) {
+	log.Print("Checking for new commit")
 	target, targetOK := workflowEngine.GetParam(workflowEngine.Trigger, "commit_target_repository", ctx)
 	branch, branchOK := workflowEngine.GetParam(workflowEngine.Trigger, "commit_target_branch", ctx)
 
