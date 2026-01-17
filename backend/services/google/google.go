@@ -22,6 +22,26 @@ var Provider = models.Service{
 			SetupTrigger:  TriggerIsInAMeeting,
 			RemoveTrigger: RemoveIsInAMeeting,
 		},
+		{
+			Name:        "google_new_email_received",
+			PrettyName:  "Receive a mail",
+			Description: "Trigger when you receive a new email in your gmail inbox",
+			Parameters:  nil,
+			Outputs: []models.Parameter{
+				{
+					Name:       "google_new_email_sender",
+					PrettyName: "Email sender",
+					Type:       models.String,
+				},
+				{
+					Name:       "google_new_email_subject",
+					PrettyName: "Email subject",
+					Type:       models.String,
+				},
+			},
+			SetupTrigger:  TriggerNewEmailReceived,
+			RemoveTrigger: RemoveNewEmailReceived,
+		},
 	},
 	Modifiers: nil,
 	Reactions: []models.Reaction{
