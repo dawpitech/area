@@ -15,11 +15,15 @@ import (
 	"github.com/juju/errors"
 )
 
+type RichText struct {
+	Text struct {
+		Content string `json:"content"`
+	} `json:"text"`
+}
+
 type CommentRequest struct {
-	DiscID   string `json:"discussion_id"`
-	RichText []struct {
-		Text map[string]string `json:"text"`
-	} `json:"rich_text"`
+	DiscID   string     `json:"discussion_id"`
+	RichText []RichText `json:"rich_text"`
 }
 
 func HandlerNotionRespondToThread(ctx models.Context) error {
@@ -53,12 +57,12 @@ func HandlerNotionRespondToThread(ctx models.Context) error {
 
 	reqBody := CommentRequest{
 		DiscID: target,
-		RichText: []struct {
-			Text map[string]string `json:"text"`
-		}{
+		RichText: []RichText{
 			{
-				Text: map[string]string{
-					"content": commentContent,
+				Text: struct {
+					Content string `json:"content"`
+				}{
+					Content: commentContent,
 				},
 			},
 		},
@@ -68,6 +72,7 @@ func HandlerNotionRespondToThread(ctx models.Context) error {
 	if err != nil {
 		log.Print(err.Error())
 	}
+	log.Print("commentContent: ", commentContent)
 	log.Print(string(bodyBytes))
 
 	url := "https://api.notion.com/v1/comments"
