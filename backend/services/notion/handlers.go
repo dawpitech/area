@@ -41,7 +41,7 @@ func HandlerNotionRespondToThread(ctx models.Context) error {
 	}
 
 	target, targetOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "discussion_id", ctx)
-	commentContent, commentContentOK := workflowEngine.GetParam(workflowEngine.ModifierHandler, "comment_content", ctx)
+	commentContent, commentContentOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "comment_content", ctx)
 
 	if !(targetOK || commentContentOK) {
 		return errors.New("Missing parameters")
@@ -72,8 +72,6 @@ func HandlerNotionRespondToThread(ctx models.Context) error {
 	if err != nil {
 		log.Print(err.Error())
 	}
-	log.Print("commentContent: ", commentContent)
-	log.Print(string(bodyBytes))
 
 	url := "https://api.notion.com/v1/comments"
 	req, err := http.NewRequest("POST", url, bytes.NewReader(bodyBytes))
