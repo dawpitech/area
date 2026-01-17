@@ -87,7 +87,7 @@ type Reaction struct {
 	Handler     Handler
 }
 
-type WebhookHandler func(gin.Context) error
+type WebhookHandler func(*gin.Context) error
 
 type WebhookEndpoint struct {
 	EndpointURL   string

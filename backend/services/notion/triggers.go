@@ -44,7 +44,7 @@ type WebhookEvent struct {
 	Data map[string]any `json:"data"`
 }
 
-func TriggerNotionPageCreated(g gin.Context) error {
+func TriggerNotionPageCreated(g *gin.Context) error {
 	body, err := io.ReadAll(g.Request.Body)
 	if err != nil {
 		return err
