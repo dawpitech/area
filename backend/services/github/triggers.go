@@ -70,7 +70,6 @@ func RemoveNewCommitOnRepo(ctx models.Context) error {
 }
 
 func checkNewCommitOnRepo(ctx models.Context) {
-	log.Print("Checking for new commit")
 	target, targetOK := workflowEngine.GetParam(workflowEngine.Trigger, "commit_target_repository", ctx)
 	branch, branchOK := workflowEngine.GetParam(workflowEngine.Trigger, "commit_target_branch", ctx)
 
@@ -153,7 +152,9 @@ func checkNewCommitOnRepo(ctx models.Context) {
 
 	latestCommit := commits[0]
 
-	if lastSHA, exists := lastCommitSHA[ctx.WorkflowID]; exists && lastSHA != latestCommit.SHA {
+	log.Printf("Used commit hash %s as base, compared to %s\n", lastCommitSHA[ctx.WorkflowID][:7], latestCommit.SHA[:7])
+
+	if lastCommitSHA[ctx.WorkflowID] != latestCommit.SHA {
 		lastCommitSHA[ctx.WorkflowID] = latestCommit.SHA
 		ctx.RuntimeData["github_new_commit_message"] = latestCommit.Commit.Message
 		ctx.RuntimeData["github_new_commit_author"] = latestCommit.Commit.Author.Name
@@ -227,10 +228,12 @@ func TriggerNewCommitOnRepo(ctx models.Context) error {
 	}
 
 	if len(commits) == 0 {
-		return errors.New("No commits found for the specified branch")
+		lastCommitSHA[ctx.WorkflowID] = "fffffffffffffffffffffffffff"
+	} else {
+		lastCommitSHA[ctx.WorkflowID] = commits[0].SHA
 	}
 
-	lastCommitSHA[ctx.WorkflowID] = commits[0].SHA
+	log.Printf("Used commit hash %s as base\n", lastCommitSHA[ctx.WorkflowID][:7])
 
 	job, err := commitScheduler.NewJob(
 		gocron.CronJob("* * * * *", false),
