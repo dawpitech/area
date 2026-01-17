@@ -6,15 +6,17 @@ import (
 	"dawpitech/area/services/discord_webhook"
 	"dawpitech/area/services/github"
 	"dawpitech/area/services/google"
+	"dawpitech/area/services/notion"
 	"dawpitech/area/services/openai"
 	"dawpitech/area/services/placeholder"
 	"dawpitech/area/services/timer"
 	"dawpitech/area/stores"
 	"fmt"
+	"strings"
+
 	"github.com/loopfz/gadgeto/tonic"
 	"github.com/wI2L/fizz"
 	"github.com/wI2L/fizz/openapi"
-	"strings"
 )
 
 var Services = []models.Service{
@@ -24,6 +26,7 @@ var Services = []models.Service{
 	openai.Provider,
 	discord_webhook.Provider,
 	google.Provider,
+	notion.Provider,
 }
 
 func Init() {
