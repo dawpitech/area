@@ -66,7 +66,7 @@ func HandlerNotionRespondToThread(ctx models.Context) error {
 
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Print(err.Error())
 	}
 
 	url := "https://api.notion.com/v1/comments"
@@ -87,6 +87,7 @@ func HandlerNotionRespondToThread(ctx models.Context) error {
 		log.Print(err)
 		return errors.New("Notion API is not reachable")
 	}
+
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
@@ -94,7 +95,8 @@ func HandlerNotionRespondToThread(ctx models.Context) error {
 		}
 	}(resp.Body)
 
-	_, _ = io.ReadAll(resp.Body)
+	bytedata, _ := io.ReadAll(resp.Body)
+	fmt.Printf(string(bytedata))
 	fmt.Printf("Response status: %s\n", resp.Status)
 	return nil
 }
