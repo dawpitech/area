@@ -620,3 +620,63 @@ suspend fun fetchGoogleInit(token: String? = null, redirectUri: String? = null):
         }
     }
 }
+
+suspend fun fetchNotionInit(token: String? = null, redirectUri: String? = null): Result<String> {
+    return withContext(Dispatchers.IO) {
+        try {
+            val query = "?platform=mobile"
+            val url = URL(ApiRoutes.BASE + ApiRoutes.NOTION_INIT + query)
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                instanceFollowRedirects = false
+                if (!token.isNullOrBlank()) {
+                    setRequestProperty("Authorization", "Bearer $token")
+                }
+                connectTimeout = 5000
+                readTimeout = 5000
+            }
+
+            val code = conn.responseCode
+            Log.d("Auth", "GET ${ApiRoutes.NOTION_INIT} -> code=$code")
+
+            if (code in 300..399) {
+                val location = conn.getHeaderField("Location")
+                if (!location.isNullOrBlank()) {
+                    Log.d("Auth", "Redirect location=$location")
+                    return@withContext Result.success(location)
+                } else {
+                    return@withContext Result.failure(Exception("Redirect without Location header"))
+                }
+            }
+
+            val reader = if (code in 200..299) BufferedReader(InputStreamReader(conn.inputStream))
+            else BufferedReader(InputStreamReader(conn.errorStream ?: conn.inputStream))
+
+            val respText = reader.use { it.readText() }
+            Log.d("Auth", "GET ${ApiRoutes.NOTION_INIT} resp=$respText")
+
+            if (code in 200..299) {
+                try {
+                    val jo = JSONObject(respText)
+                    if (jo.has("redirect_to")) {
+                        return@withContext Result.success(jo.optString("redirect_to", ""))
+                    }
+                    if (jo.has("url")) {
+                        return@withContext Result.success(jo.optString("url", ""))
+                    }
+                } catch (_: Exception) {}
+                return@withContext Result.success(respText)
+            } else {
+                try {
+                    val jo = JSONObject(respText)
+                    val err = extractErrorMessageFromJson(jo)
+                    return@withContext Result.failure(Exception(err))
+                } catch (_: Exception) {}
+                return@withContext Result.failure(Exception(respText))
+            }
+        } catch (e: Exception) {
+            Log.e("Auth", "fetchNotionInit error", e)
+            Result.failure(e)
+        }
+    }
+}

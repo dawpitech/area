@@ -15,4 +15,6 @@ object ApiRoutes {
     const val GITHUB_CHECK = "/providers/github/auth/check"
     const val GOOGLE_INIT = "/providers/google/auth/init"
     const val GOOGLE_CHECK = "/providers/google/auth/check"
+    const val NOTION_INIT = "/providers/notion/auth/init"
+    const val NOTION_CHECK = "/providers/notion/auth/check"
 }

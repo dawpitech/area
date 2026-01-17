@@ -105,6 +105,29 @@ fun HomeScreen(token: String, email: String?, onSignOut: () -> Unit) {
                                 }
                             )
                         }
+                    },
+                    "Notion" to {
+                        if (loading) return@to
+                        loading = true
+                        error = null
+                        scope.launch {
+                            val redirectUri = "area://home"
+                            val res = fetchNotionInit(token, redirectUri)
+                            loading = false
+                            res.fold(
+                                onSuccess = { url ->
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        error = context.getString(R.string.error_cannot_open_url, e.message ?: "")
+                                    }
+                                },
+                                onFailure = { e ->
+                                    error = e.message ?: context.getString(R.string.error_failed_to_connect, "Notion")
+                                }
+                            )
+                        }
                     }
                 )
 
@@ -113,9 +136,9 @@ fun HomeScreen(token: String, email: String?, onSignOut: () -> Unit) {
                     com.uwu.area.ui.components.SimpleButton(
                         onClick = onClick,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = !loading || (name != "GitHub" && name != "Google")
+                        enabled = !loading || (name != "GitHub" && name != "Google" && name != "Notion")
                     ) {
-                        Text(text = if (loading && (name == "GitHub" || name == "Google")) stringResource(R.string.auth_connecting) else stringResource(R.string.home_connect_button, name))
+                        Text(text = if (loading && (name == "GitHub" || name == "Google" || name == "Notion")) stringResource(R.string.auth_connecting) else stringResource(R.string.home_connect_button, name))
                     }
                 }
             }
