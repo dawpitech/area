@@ -69,18 +69,30 @@ const buildReferenceOptionsFromDetails = (details) => {
 }
 
 const DetailsPanel = ({ label, loading, details }) => (
-  <div className="mt-3 p-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white/60 dark:bg-black/20">
+  <div className="mt-3 p-3 rounded-lg border border-gray-200 bg-white/60
+                  dark:border-gray-800 dark:bg-black/20
+                  contrast:border-white contrast:bg-black">
     {loading && !details ? (
-      <p className="text-sm text-gray-500 dark:text-gray-400">Loading {label.toLowerCase()} details...</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 contrast:text-white/80">
+        Loading {label.toLowerCase()} details...
+      </p>
     ) : details ? (
       <>
-        <p className="text-sm text-gray-800 dark:text-gray-100 font-medium">{details.PrettyName || details.Name}</p>
-        {details.Description ? <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{details.Description}</p> : null}
+        <p className="text-sm text-gray-800 dark:text-gray-100 contrast:text-white font-medium">
+          {details.PrettyName || details.Name}
+        </p>
+        {details.Description ? (
+          <p className="text-sm text-gray-600 dark:text-gray-300 contrast:text-white/80 mt-1">
+            {details.Description}
+          </p>
+        ) : null}
 
         {Array.isArray(details.Parameters) && details.Parameters.length > 0 ? (
           <div className="mt-2">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Parameters</p>
-            <ul className="mt-1 list-disc list-inside text-sm text-gray-700 dark:text-gray-200">
+            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 contrast:text-white/80">
+              Parameters
+            </p>
+            <ul className="mt-1 list-disc list-inside text-sm text-gray-700 dark:text-gray-200 contrast:text-white">
               {details.Parameters.map((p) => (
                 <li key={p.Name}>
                   <span className="font-medium">{p.PrettyName || p.Name}</span>
@@ -89,11 +101,15 @@ const DetailsPanel = ({ label, loading, details }) => (
             </ul>
           </div>
         ) : (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">No parameters.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 contrast:text-white/80 mt-2">
+            No parameters.
+          </p>
         )}
       </>
     ) : (
-      <p className="text-sm text-gray-500 dark:text-gray-400">No details.</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 contrast:text-white/80">
+        No details.
+      </p>
     )}
   </div>
 )
@@ -115,13 +131,19 @@ const SelectWithDetails = ({
   const placeholder = placeholderOverride || `Select a ${label.toLowerCase()}`
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 contrast:text-white">
+        {label}
+      </label>
       <select
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
+        className="mt-1 w-full px-3 py-2 border rounded-lg outline-none transition
                    bg-white text-gray-900 border-gray-300
-                   dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
+                   focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2
+                   focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900
+                   dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700
+                   contrast:bg-black contrast:text-white contrast:border-white
+                   contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
         required={required}
         disabled={loading}
       >
@@ -133,7 +155,11 @@ const SelectWithDetails = ({
           <option value="">{loading ? `Loading ${label.toLowerCase()}...` : placeholder}</option>
         ) : null}
 
-        {options.length === 0 && !loading && emptyOptionsText ? <option value="" disabled>{emptyOptionsText}</option> : null}
+        {options.length === 0 && !loading && emptyOptionsText ? (
+          <option value="" disabled>
+            {emptyOptionsText}
+          </option>
+        ) : null}
 
         {options.map((n) => (
           <option key={n} value={n}>
@@ -157,7 +183,9 @@ const StringParamSelect = ({ label, value, onChange, referenceOptions }) => {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 contrast:text-white">
+        {label}
+      </label>
 
       <select
         value={selectedModeValue}
@@ -169,9 +197,13 @@ const StringParamSelect = ({ label, value, onChange, referenceOptions }) => {
             onChange(next)
           }
         }}
-        className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
+        className="mt-1 w-full px-3 py-2 border rounded-lg outline-none transition
                    bg-white text-gray-900 border-gray-300
-                   dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700"
+                   focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2
+                   focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950
+                   dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700
+                   contrast:bg-black contrast:text-white contrast:border-white
+                   contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
       >
         <option value={CUSTOM}>Custom value</option>
 
@@ -195,9 +227,13 @@ const StringParamSelect = ({ label, value, onChange, referenceOptions }) => {
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Enter a custom value..."
-          className="mt-2 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
+          className="mt-2 w-full px-3 py-2 border rounded-lg outline-none transition
                      bg-white text-gray-900 border-gray-300
-                     dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700"
+                     focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2
+                     focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950
+                     dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700
+                     contrast:bg-black contrast:text-white contrast:border-white
+                     contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
         />
       ) : null}
     </div>
@@ -209,15 +245,23 @@ const ParamsEditor = ({ title, details, values, setKV, referenceOptions }) => {
   const ps = Array.isArray(details.Parameters) ? details.Parameters : []
   if (ps.length === 0) {
     return (
-      <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <p className="text-sm text-gray-500 dark:text-gray-400">No {title.toLowerCase()} parameters.</p>
+      <div className="p-3 rounded-lg border border-gray-200 bg-white
+                      dark:border-gray-800 dark:bg-gray-900
+                      contrast:border-white contrast:bg-black">
+        <p className="text-sm text-gray-500 dark:text-gray-400 contrast:text-white/80">
+          No {title.toLowerCase()} parameters.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="p-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 space-y-3">
-      <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{title} parameters</p>
+    <div className="p-3 rounded-lg border border-gray-200 bg-white space-y-3
+                    dark:border-gray-800 dark:bg-gray-900
+                    contrast:border-white contrast:bg-black">
+      <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 contrast:text-white">
+        {title} parameters
+      </p>
 
       {ps.map((p) => {
         const key = p.Name
@@ -233,8 +277,9 @@ const ParamsEditor = ({ title, details, values, setKV, referenceOptions }) => {
                 type="checkbox"
                 checked={Boolean(val)}
                 onChange={(e) => setKV(key, 'boolean', e.target.checked)}
+                className="h-4 w-4"
               />
-              <label htmlFor={`${title}-${key}`} className="text-sm text-gray-700 dark:text-gray-200">
+              <label htmlFor={`${title}-${key}`} className="text-sm text-gray-700 dark:text-gray-200 contrast:text-white">
                 {label}
               </label>
             </div>
@@ -244,14 +289,20 @@ const ParamsEditor = ({ title, details, values, setKV, referenceOptions }) => {
         if (['int', 'integer', 'number', 'float', 'double'].includes(type)) {
           return (
             <div key={key}>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 contrast:text-white">
+                {label}
+              </label>
               <input
                 type="number"
                 value={val ?? 0}
                 onChange={(e) => setKV(key, type, e.target.value)}
-                className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
+                className="mt-1 w-full px-3 py-2 border rounded-lg outline-none transition
                            bg-white text-gray-900 border-gray-300
-                           dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700"
+                           focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2
+                           focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950
+                           dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700
+                           contrast:bg-black contrast:text-white contrast:border-white
+                           contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
               />
             </div>
           )
@@ -278,8 +329,8 @@ const Toast = ({ type = 'success', message, onClose }) => {
     'fixed bottom-6 right-6 z-[60] max-w-md w-[92vw] sm:w-auto px-4 py-3 rounded-lg shadow-lg border text-sm'
   const styles =
     type === 'error'
-      ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/40 dark:border-red-900 dark:text-red-200'
-      : 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950/40 dark:border-green-900 dark:text-green-200'
+      ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/40 dark:border-red-900 dark:text-red-200 contrast:bg-black contrast:border-white contrast:text-yellow-300'
+      : 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950/40 dark:border-green-900 dark:text-green-200 contrast:bg-black contrast:border-white contrast:text-yellow-300'
   return (
     <div className={`${base} ${styles}`} role="status" aria-live="polite">
       <div className="flex items-start gap-3">
@@ -287,7 +338,12 @@ const Toast = ({ type = 'success', message, onClose }) => {
         <button
           type="button"
           onClick={onClose}
-          className="text-xs font-semibold px-2 py-1 rounded-md border border-current/20 hover:bg-black/5 dark:hover:bg-white/10 transition"
+          className="text-xs font-semibold px-2 py-1 rounded-md border border-current/20 transition
+                     hover:bg-black/5 dark:hover:bg-white/10 contrast:hover:bg-white/10
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+                     focus-visible:ring-indigo-600 focus-visible:ring-offset-white
+                     dark:focus-visible:ring-offset-gray-950
+                     contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
         >
           Close
         </button>
@@ -614,8 +670,14 @@ const Workflows = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, reactionName])
 
-  const actionReferenceOptions = useMemo(() => buildReferenceOptionsFromDetails(selectedActionDetails), [selectedActionDetails])
-  const modifierReferenceOptions = useMemo(() => buildReferenceOptionsFromDetails(selectedModifierDetails), [selectedModifierDetails])
+  const actionReferenceOptions = useMemo(
+    () => buildReferenceOptionsFromDetails(selectedActionDetails),
+    [selectedActionDetails]
+  )
+  const modifierReferenceOptions = useMemo(
+    () => buildReferenceOptionsFromDetails(selectedModifierDetails),
+    [selectedModifierDetails]
+  )
   const reactionReferenceOptions = useMemo(() => {
     const combined = [...actionReferenceOptions, ...modifierReferenceOptions]
     const seen = new Set()
@@ -680,7 +742,11 @@ const Workflows = () => {
 
       setWorkflows((prev) => {
         const exists = prev.some((w) => (w.WorkflowID ?? w.ID ?? w.id) === id)
-        const light = { WorkflowID: patched?.WorkflowID ?? id, Name: patched?.Name ?? full.Name, Active: patched?.Active ?? full.Active }
+        const light = {
+          WorkflowID: patched?.WorkflowID ?? id,
+          Name: patched?.Name ?? full.Name,
+          Active: patched?.Active ?? full.Active,
+        }
         return exists
           ? prev.map((w) => ((w.WorkflowID ?? w.ID ?? w.id) === id ? { ...w, ...light } : w))
           : [...prev, light]
@@ -795,28 +861,45 @@ const Workflows = () => {
 
   const title = isCreate
     ? 'Create a new workflow'
-    : selectedWorkflowDetails?.Name || selectedWorkflowLight?.Name || (selectedId != null ? `Workflow #${selectedId}` : 'No workflow selected')
+    : selectedWorkflowDetails?.Name ||
+      selectedWorkflowLight?.Name ||
+      (selectedId != null ? `Workflow #${selectedId}` : 'No workflow selected')
 
   return (
-    <main className="w-full min-h-screen pt-12 pl-64 px-4 bg-gray-50 dark:bg-gray-900 dark:text-gray-100 transition-colors">
-      <div className="w-full mx-auto flex border rounded-xl shadow bg-white dark:bg-gray-950 dark:border-gray-800 overflow-hidden min-h-[70vh] text-base">
-        <aside className="w-64 border-r bg-gray-50 dark:bg-gray-900 dark:border-gray-800 flex flex-col">
-          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-            <h2 className="text-base font-semibold text-gray-700 dark:text-gray-200">Workflows</h2>
+    <main className="w-full min-h-screen pt-12 pl-64 px-4
+                     bg-gray-50 dark:bg-gray-900 contrast:bg-black transition-colors">
+      <div className="w-full mx-auto flex border rounded-xl shadow overflow-hidden min-h-[70vh] text-base
+                      bg-white border-gray-200
+                      dark:bg-gray-950 dark:border-gray-800
+                      contrast:bg-black contrast:border-white">
+        <aside className="w-64 border-r bg-gray-50 border-gray-200 flex flex-col
+                          dark:bg-gray-900 dark:border-gray-800
+                          contrast:bg-black contrast:border-white">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 contrast:border-white">
+            <h2 className="text-base font-semibold text-gray-700 dark:text-gray-200 contrast:text-white">
+              Workflows
+            </h2>
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {loadingList ? (
-              <div className="p-4 text-sm text-gray-500 dark:text-gray-400">Loading workflows...</div>
+              <div className="p-4 text-sm text-gray-500 dark:text-gray-400 contrast:text-white/80">
+                Loading workflows...
+              </div>
             ) : error ? (
-              <div className="p-4 text-sm text-gray-500 dark:text-gray-400">{error}</div>
+              <div className="p-4 text-sm text-gray-500 dark:text-gray-400 contrast:text-white/80">
+                {error}
+              </div>
             ) : workflows.length === 0 ? (
-              <div className="p-4 text-sm text-gray-500 dark:text-gray-400">No workflows found.</div>
+              <div className="p-4 text-sm text-gray-500 dark:text-gray-400 contrast:text-white/80">
+                No workflows found.
+              </div>
             ) : (
               <ul className="py-2">
                 {workflows.map((w) => {
                   const id = w.WorkflowID ?? w.ID ?? w.id
                   const label = w.Name || `Workflow #${id}`
+                  const isSelected = id === selectedId
                   return (
                     <li key={id}>
                       <button
@@ -827,9 +910,13 @@ const Workflows = () => {
                         }}
                         className={
                           'w-full text-left px-4 py-2 text-base transition ' +
-                          (id === selectedId
-                            ? 'bg-blue-600 text-white'
-                            : 'hover:bg-gray-100 text-gray-700 dark:text-gray-200 dark:hover:bg-gray-800')
+                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' +
+                          'focus-visible:ring-indigo-600 focus-visible:ring-offset-white ' +
+                          'dark:focus-visible:ring-offset-gray-950 ' +
+                          'contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black ' +
+                          (isSelected
+                            ? 'bg-blue-600 text-white contrast:bg-yellow-300 contrast:text-black'
+                            : 'hover:bg-gray-100 text-gray-700 dark:text-gray-200 dark:hover:bg-gray-800 contrast:text-white contrast:hover:bg-white/10')
                         }
                       >
                         {label}
@@ -841,11 +928,17 @@ const Workflows = () => {
             )}
           </div>
 
-          <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800">
+          <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 contrast:border-white">
             <button
               type="button"
               onClick={onCreate}
-              className="w-full flex items-center justify-center gap-1 text-sm font-medium px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition"
+              className="w-full flex items-center justify-center gap-1 text-sm font-medium px-3 py-2 rounded-md transition
+                         bg-blue-600 text-white hover:bg-blue-700
+                         contrast:bg-yellow-300 contrast:text-black contrast:hover:bg-yellow-200
+                         focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+                         focus-visible:ring-indigo-600 focus-visible:ring-offset-white
+                         dark:focus-visible:ring-offset-gray-950
+                         contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
             >
               <span>+</span>
               <span>Create workflow</span>
@@ -855,15 +948,22 @@ const Workflows = () => {
 
         <section className="flex-1 p-6">
           <div className="flex items-start gap-3 justify-between">
-            <h1 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-100">{title}</h1>
+            <h1 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-gray-100 contrast:text-white">
+              {title}
+            </h1>
 
             {!isCreate && selectedId != null ? (
               <button
                 type="button"
                 onClick={openLogs}
-                className="mt-0.5 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
-                           border border-gray-300 text-gray-700 hover:bg-gray-100 transition
-                           dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-900"
+                className="mt-0.5 inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition
+                           border border-gray-300 text-gray-700 hover:bg-gray-100
+                           dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-900
+                           contrast:border-white contrast:text-white contrast:hover:bg-white/10
+                           focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+                           focus-visible:ring-indigo-600 focus-visible:ring-offset-white
+                           dark:focus-visible:ring-offset-gray-950
+                           contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
                 title="View workflow logs"
               >
                 <span>Logs</span>
@@ -874,21 +974,33 @@ const Workflows = () => {
           {(isCreate || isEdit) ? (
             <form onSubmit={onSave} className="space-y-4 max-w-xl">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 contrast:text-white">
+                  Name
+                </label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded-lg outline-none focus:border-indigo-600 transition
+                  className="mt-1 w-full px-3 py-2 border rounded-lg outline-none transition
                              bg-white text-gray-900 border-gray-300
-                             dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700"
+                             focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2
+                             focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900
+                             dark:bg-gray-900 dark:text-gray-100 dark:border-gray-700
+                             contrast:bg-black contrast:text-white contrast:border-white
+                             contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
                   required
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <input id="active" type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-                <label htmlFor="active" className="text-sm text-gray-700 dark:text-gray-200">
+                <input
+                  id="active"
+                  type="checkbox"
+                  checked={active}
+                  onChange={(e) => setActive(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                <label htmlFor="active" className="text-sm text-gray-700 dark:text-gray-200 contrast:text-white">
                   Active
                 </label>
               </div>
@@ -954,8 +1066,14 @@ const Workflows = () => {
                   type="submit"
                   disabled={saving || loadingDetails}
                   className={
-                    'px-4 py-2 rounded-lg text-sm font-medium text-white ' +
-                    (saving || loadingDetails ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 transition')
+                    'px-4 py-2 rounded-lg text-sm font-medium transition ' +
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' +
+                    'focus-visible:ring-indigo-600 focus-visible:ring-offset-white ' +
+                    'dark:focus-visible:ring-offset-gray-950 ' +
+                    'contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black ' +
+                    (saving || loadingDetails
+                      ? 'bg-gray-400 cursor-not-allowed text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white contrast:bg-yellow-300 contrast:text-black contrast:hover:bg-yellow-200')
                   }
                 >
                   {saving ? (isCreate ? 'Creating...' : 'Saving...') : isCreate ? 'Create workflow' : 'Update workflow'}
@@ -964,8 +1082,14 @@ const Workflows = () => {
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 transition
-                             dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition
+                             border border-gray-300 text-gray-700 hover:bg-gray-100
+                             dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800
+                             contrast:border-white contrast:text-white contrast:hover:bg-white/10
+                             focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+                             focus-visible:ring-indigo-600 focus-visible:ring-offset-white
+                             dark:focus-visible:ring-offset-gray-950
+                             contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
                 >
                   Cancel
                 </button>
@@ -976,8 +1100,14 @@ const Workflows = () => {
                     onClick={onDelete}
                     disabled={saving}
                     className={
-                      'ml-auto px-4 py-2 rounded-lg text-sm font-medium text-white ' +
-                      (saving ? 'bg-red-300 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 transition')
+                      'ml-auto px-4 py-2 rounded-lg text-sm font-medium transition ' +
+                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' +
+                      'focus-visible:ring-indigo-600 focus-visible:ring-offset-white ' +
+                      'dark:focus-visible:ring-offset-gray-950 ' +
+                      'contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black ' +
+                      (saving
+                        ? 'bg-red-300 cursor-not-allowed text-white'
+                        : 'bg-red-600 hover:bg-red-700 text-white contrast:bg-yellow-300 contrast:text-black contrast:hover:bg-yellow-200')
                     }
                   >
                     Delete
@@ -986,15 +1116,15 @@ const Workflows = () => {
               </div>
             </form>
           ) : selectedId == null ? (
-            <div className="w-full min-h-[300px] border border-dashed border-gray-300 dark:border-gray-700 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm">
+            <div className="w-full min-h-[300px] border border-dashed border-gray-300 dark:border-gray-700 contrast:border-white rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 contrast:text-white/80 text-sm">
               Select a workflow on the left to see its details.
             </div>
           ) : (
-            <div className="w-full min-h-[300px] border border-gray-200 dark:border-gray-800 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+            <div className="w-full min-h-[300px] border border-gray-200 dark:border-gray-800 contrast:border-white rounded-lg p-4 bg-gray-50 dark:bg-gray-900 contrast:bg-black">
               {loadingDetails ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">Loading details...</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 contrast:text-white/80">Loading details...</p>
               ) : (
-                <p className="text-sm text-gray-700 dark:text-gray-200">Select this workflow again to edit.</p>
+                <p className="text-sm text-gray-700 dark:text-gray-200 contrast:text-white">Select this workflow again to edit.</p>
               )}
             </div>
           )}
@@ -1008,11 +1138,17 @@ const Workflows = () => {
                 aria-label="Close logs modal"
               />
 
-              <div className="relative w-full max-w-3xl max-h-[80vh] rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-xl overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+              <div className="relative w-full max-w-3xl max-h-[80vh] rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden
+                              dark:border-gray-800 dark:bg-gray-950
+                              contrast:border-white contrast:bg-black">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 contrast:border-white">
                   <div>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Workflow logs</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">WorkflowID: {selectedId}</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 contrast:text-white">
+                      Workflow logs
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 contrast:text-white/80">
+                      WorkflowID: {selectedId}
+                    </p>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -1022,9 +1158,13 @@ const Workflows = () => {
                       disabled={logsLoading}
                       className={
                         'px-3 py-2 rounded-lg text-sm font-medium border transition ' +
+                        'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' +
+                        'focus-visible:ring-indigo-600 focus-visible:ring-offset-white ' +
+                        'dark:focus-visible:ring-offset-gray-950 ' +
+                        'contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black ' +
                         (logsLoading
-                          ? 'border-gray-300 text-gray-400 cursor-not-allowed dark:border-gray-800'
-                          : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-900')
+                          ? 'border-gray-300 text-gray-400 cursor-not-allowed dark:border-gray-800 contrast:border-white/60 contrast:text-white/50'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-900 contrast:border-white contrast:text-white contrast:hover:bg-white/10')
                       }
                       title="Refresh"
                     >
@@ -1033,8 +1173,14 @@ const Workflows = () => {
                     <button
                       type="button"
                       onClick={closeLogs}
-                      className="px-3 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-100 transition
-                                 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-900"
+                      className="px-3 py-2 rounded-lg text-sm font-medium border transition
+                                 border-gray-300 text-gray-700 hover:bg-gray-100
+                                 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-900
+                                 contrast:border-white contrast:text-white contrast:hover:bg-white/10
+                                 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+                                 focus-visible:ring-indigo-600 focus-visible:ring-offset-white
+                                 dark:focus-visible:ring-offset-gray-950
+                                 contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
                       title="Close (Esc)"
                     >
                       Close
@@ -1042,35 +1188,45 @@ const Workflows = () => {
                   </div>
                 </div>
 
-                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 contrast:border-white">
                   <input
                     type="text"
                     value={logsQuery}
                     onChange={(e) => setLogsQuery(e.target.value)}
                     placeholder="Search in logs (message, type, timestamp)..."
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 outline-none focus:border-indigo-600 transition
-                               dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 outline-none transition
+                               focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2
+                               focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950
+                               dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100
+                               contrast:border-white contrast:bg-black contrast:text-white
+                               contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
                   />
                 </div>
 
                 <div className="p-4 overflow-y-auto max-h-[calc(80vh-120px)]">
                   {logsLoading ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Loading logs...</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 contrast:text-white/80">Loading logs...</p>
                   ) : logsError ? (
-                    <div className="text-sm text-red-600 dark:text-red-400">
+                    <div className="text-sm text-red-600 dark:text-red-400 contrast:text-yellow-300">
                       {logsError}
                       <div className="mt-2">
                         <button
                           type="button"
                           onClick={() => loadLogs(selectedId)}
-                          className="px-3 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition"
+                          className="px-3 py-2 rounded-lg text-sm font-medium transition
+                                     bg-blue-600 text-white hover:bg-blue-700
+                                     contrast:bg-yellow-300 contrast:text-black contrast:hover:bg-yellow-200
+                                     focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+                                     focus-visible:ring-indigo-600 focus-visible:ring-offset-white
+                                     dark:focus-visible:ring-offset-gray-950
+                                     contrast:focus-visible:ring-yellow-300 contrast:focus-visible:ring-offset-black"
                         >
                           Retry
                         </button>
                       </div>
                     </div>
                   ) : filteredLogs.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No logs found.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 contrast:text-white/80">No logs found.</p>
                   ) : (
                     <ul className="space-y-2">
                       {filteredLogs.map((l, idx) => {
@@ -1081,15 +1237,17 @@ const Workflows = () => {
                         return (
                           <li
                             key={`${tsRaw}-${typ}-${idx}`}
-                            className="rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 p-3"
+                            className="rounded-lg border border-gray-200 bg-gray-50 p-3
+                                       dark:border-gray-800 dark:bg-gray-900
+                                       contrast:border-white contrast:bg-black"
                           >
                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                              <span className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                              <span className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 contrast:text-white">
                                 {typ || 'LOG'}
                               </span>
-                              {ts ? <span className="text-xs text-gray-500 dark:text-gray-400">{ts}</span> : null}
+                              {ts ? <span className="text-xs text-gray-500 dark:text-gray-400 contrast:text-white/80">{ts}</span> : null}
                             </div>
-                            <p className="mt-2 text-sm text-gray-800 dark:text-gray-100 whitespace-pre-wrap break-words">
+                            <p className="mt-2 text-sm text-gray-800 dark:text-gray-100 contrast:text-white whitespace-pre-wrap break-words">
                               {String(msg)}
                             </p>
                           </li>
