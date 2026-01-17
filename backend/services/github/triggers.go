@@ -152,7 +152,7 @@ func checkNewCommitOnRepo(ctx models.Context) {
 
 	latestCommit := commits[0]
 
-	log.Printf("Used commit hash %s as base, compared to %s\n", lastCommitSHA[ctx.WorkflowID][:7], latestCommit.SHA[:7])
+	//log.Printf("Used commit hash %s as base, compared to %s\n", lastCommitSHA[ctx.WorkflowID][:7], latestCommit.SHA[:7])
 
 	if lastCommitSHA[ctx.WorkflowID] != latestCommit.SHA {
 		lastCommitSHA[ctx.WorkflowID] = latestCommit.SHA
@@ -233,7 +233,7 @@ func TriggerNewCommitOnRepo(ctx models.Context) error {
 		lastCommitSHA[ctx.WorkflowID] = commits[0].SHA
 	}
 
-	log.Printf("Used commit hash %s as base\n", lastCommitSHA[ctx.WorkflowID][:7])
+	//log.Printf("Used commit hash %s as base\n", lastCommitSHA[ctx.WorkflowID][:7])
 
 	job, err := commitScheduler.NewJob(
 		gocron.CronJob("* * * * *", false),
