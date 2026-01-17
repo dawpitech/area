@@ -73,6 +73,7 @@ func SetupWorkflowTrigger(workflow models.Workflow) (error, bool) {
 		ReactionParameters: workflow.ReactionParameters,
 		ReactionHandler:    stores.ReactionStore[workflow.ReactionName].Handler,
 	}
+	context.RuntimeData = make(map[string]string)
 	_, ok := stores.ActionStore[workflow.ActionName]
 	if !ok {
 		return errors.New("Provided action doesnt exist."), false
@@ -136,7 +137,6 @@ func DisableWorkflowTrigger(workflow models.Workflow) (error, bool) {
 
 func RunWorkflow(ctx models.Context) {
 	log.Printf("Workflow #%d was triggered.\n", ctx.WorkflowID)
-	ctx.RuntimeData = make(map[string]string)
 	err := ctx.ModifierHandler(ctx)
 	if err != nil {
 		log.Printf("Workflow #%d failed during the modifier.\n", ctx.WorkflowID)
