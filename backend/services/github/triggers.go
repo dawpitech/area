@@ -19,6 +19,14 @@ import (
 var scheduler gocron.Scheduler
 var workflowJobUUID = make(map[uint]uuid.UUID)
 
+func init() {
+	var err error
+	if scheduler, err = gocron.NewScheduler(); err != nil {
+		log.Panic("Module github couldn't init a job scheduler")
+	}
+	scheduler.Start()
+}
+
 type StarDetail struct {
 	StarredAt string `json:"starred_at"`
 	User      struct {
@@ -37,7 +45,7 @@ func RemoveNewStarOnRepo(ctx models.Context) error {
 }
 
 func checkNewStarOnRepo(ctx models.Context) {
-	target, targetOK := workflowEngine.GetParam(workflowEngine.ReactionHandler, "star_target_repository", ctx)
+	target, targetOK := workflowEngine.GetParam(workflowEngine.Trigger, "star_target_repository", ctx)
 
 	if !targetOK {
 		logEngine.NewLogEntry(ctx.WorkflowID, models.ErrorLog, "Missing parameters.")
