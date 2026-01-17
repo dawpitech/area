@@ -48,10 +48,6 @@ const coerce = (type, raw) => {
 
 const isRefValue = (v) => typeof v === 'string' && v.startsWith('#') && v.length > 1
 
-/**
- * Available references must come from details.Outputs (NOT details.Parameters).
- * Each reference is stored as "#<outputName>".
- */
 const buildReferenceOptionsFromDetails = (details) => {
   const outs = Array.isArray(details?.Outputs) ? details.Outputs : []
   const opts = []
@@ -392,7 +388,7 @@ const Workflows = () => {
     setName('')
     setActive(true)
     setActionName('')
-    setModifierName(findBackendNoneModifier(modifiers))
+    setModifierName('')
     setReactionName('')
     setActionParams({})
     setModifierParams({})
@@ -485,8 +481,6 @@ const Workflows = () => {
         const list = Array.isArray(data?.ModifiersName) ? data.ModifiersName : []
         if (cancel) return
         setModifiers(list)
-        setModifierName((prev) => (prev ? prev : findBackendNoneModifier(list)))
-
         await preloadList(list, preloadedModifiersRef, apiGetModifierDetails, setModifierDetailsByName)
       } catch (e) {
         console.error(e)
@@ -649,7 +643,7 @@ const Workflows = () => {
     Active: active,
     ActionName: actionName.trim(),
     ActionParameters: actionParams ?? {},
-    ModifierName: modifierName.trim(),
+    ModifierName: modifierName.trim() || findBackendNoneModifier(modifiers),
     ModifierParameters: modifierParams ?? {},
     ReactionName: reactionName.trim(),
     ReactionParameters: reactionParams ?? {},
@@ -665,23 +659,23 @@ const Workflows = () => {
     try {
       setSaving(true)
       setError('')
-      let id = selectedId
       const wasCreate = isCreate
 
-      if (isCreate) {
-        const created = await apiCreateWorkflow({ WorkflowID: 0, Name: name.trim(), Active: active })
-        id = created?.WorkflowID ?? created?.ID ?? created?.id
-        if (id == null) throw new Error('Missing WorkflowID in create response.')
-      }
-
-      const full = payload(id)
-      const checkRes = await apiCheckWorkflow(full)
+      const checkRes = await apiCheckWorkflow(payload(0))
       if (!Boolean(checkRes?.SyntaxValid)) {
         const msg = checkRes?.Error || checkRes?.error || 'The workflow is invalid.'
         showToast('error', msg)
         return
       }
 
+      let id = selectedId
+      if (wasCreate) {
+        const created = await apiCreateWorkflow({ WorkflowID: 0, Name: name.trim(), Active: active })
+        id = created?.WorkflowID ?? created?.ID ?? created?.id
+        if (id == null) throw new Error('Missing WorkflowID in create response.')
+      }
+
+      const full = payload(id)
       const patched = await apiPatchWorkflow(id, full)
 
       setWorkflows((prev) => {
@@ -924,7 +918,7 @@ const Workflows = () => {
                 detailsByName={modifierDetailsByName}
                 detailsLoading={loadingModifierDetails}
                 selectedDetails={selectedModifierDetails}
-                includeEmptyOption={false}
+                includeEmptyOption={true}
               />
               <ParamsEditor
                 title="Modifier"
