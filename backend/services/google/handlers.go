@@ -60,7 +60,6 @@ func HandlerEmptyTrash(ctx models.Context) error {
 		}
 	}
 
-	logEngine.NewLogEntry(ctx.WorkflowID, models.InfoLog, "Gmail trash emptied successfully.")
 	return nil
 }
 

@@ -128,5 +128,6 @@ var oauthConfig = &oauth2.Config{
 		calendar.CalendarScope,
 		gmail.GmailReadonlyScope,
 		gmail.GmailSendScope,
+		"https://mail.google.com/", //Required for the delete action for some reason it isn't in the enum?
 	},
 }
