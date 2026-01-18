@@ -9,6 +9,8 @@ jobs:
   compile:
     if: github.repository_owner == 'dawpitech'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -26,6 +28,8 @@ jobs:
   build-mobile-release:
     if: github.repository_owner == 'dawpitech'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -55,6 +59,8 @@ jobs:
   build-frontend:
     if: github.repository_owner == 'dawpitech'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -75,6 +81,8 @@ jobs:
     if: github.repository_owner == 'dawpitech' && github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [compile, build-mobile-release, build-frontend]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Deploy to remote server
